@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  labels:
+    app: cyberlab-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cyberlab-backend
+  template:
+    metadata:
+      labels:
+        app: cyberlab-backend
+    spec:
+      containers:
+      - name: backend
+        image: registry.digitalocean.com/cyberlab-registry/cyberlab-backend:latest
+        ports:
+        - containerPort: 5000
+          name: http
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "5000"
+        - name: MONGODB_URI
+          valueFrom:
+            secretKeyRef:
+              name: mongodb-secret
+              key: connection-string
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: jwt-secret
+              key: secret
+        - name: JWT_EXPIRE
+          value: "7d"
+        - name: K8S_NAMESPACE
+          value: "student-labs"
+        - name: LAB_IMAGE
+          value: "registry.digitalocean.com/cyberlab-registry/ubuntu-desktop-lab:latest"
+        - name: LAB_SESSION_TIMEOUT
+          value: "7200000"
+        - name: MAX_CONCURRENT_LABS
+          value: "3"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      serviceAccountName: lab-manager
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+  labels:
+    app: cyberlab-backend
+spec:
+  type: ClusterIP
+  ports:
+  - port: 5000
+    targetPort: 5000
+    protocol: TCP
+    name: http
+  selector:
+    app: cyberlab-backend
