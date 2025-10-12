@@ -31,7 +31,7 @@ spec:
         - name: MONGODB_URI
           valueFrom:
             secretKeyRef:
-              name: mongodb-secret
+              name: mongo-secret
               key: connection-string
         - name: JWT_SECRET
           valueFrom:
