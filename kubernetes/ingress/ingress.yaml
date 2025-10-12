@@ -2,15 +2,15 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: cyberlab-ingress
+  namespace: default
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
-    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"  # If using cert-manager
+    nginx.ingress.kubernetes.io/use-regex: "true"
 spec:
   ingressClassName: nginx
   rules:
-  - host: cyberlab.yourdomain.com  # CHANGE THIS
+  - host:  152-42-156-112.nip.io  # REPLACE with your LoadBalancer IP (change dots to dashes)
     http:
       paths:
       - path: /api
@@ -27,8 +27,3 @@ spec:
             name: frontend-service
             port:
               number: 80
-  # Uncomment for HTTPS
-  # tls:
-  # - hosts:
-  #   - cyberlab.yourdomain.com
-  #   secretName: cyberlab-tls
