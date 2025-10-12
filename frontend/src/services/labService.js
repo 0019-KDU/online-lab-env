@@ -1,27 +1,21 @@
 import api from './api';
 
 const labService = {
-  // Get all lab templates
-  getLabTemplates: async () => {
-    const response = await api.get('/labs/templates');
+  // Start a lab session
+  startLab: async () => {
+    const response = await api.post('/labs/start');
     return response.data;
   },
 
-  // Start a new lab session
-  startLab: async (templateId) => {
-    const response = await api.post('/labs/start', { templateId });
-    return response.data;
-  },
-
-  // Get student's active sessions
+  // Get active session
   getMySessions: async () => {
-    const response = await api.get('/labs/my-sessions');
-    return response.data;
+    const response = await api.get('/labs/my-session');
+    return response.data ? [response.data] : [];
   },
 
-  // Stop a lab session
-  stopLab: async (sessionId) => {
-    const response = await api.post(`/labs/${sessionId}/stop`);
+  // Stop lab session
+  stopLab: async () => {
+    const response = await api.post('/labs/stop');
     return response.data;
   },
 };

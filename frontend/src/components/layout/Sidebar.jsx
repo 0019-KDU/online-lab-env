@@ -1,20 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
 import { 
   HomeIcon, 
-  BeakerIcon, 
-  ClockIcon,
-  BookOpenIcon,
-  ChartBarIcon,
   XMarkIcon
 } from '@heroicons/react/24/outline';
 import clsx from 'clsx';
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-  { name: 'Lab Catalog', href: '/labs', icon: BeakerIcon },
-  { name: 'Active Sessions', href: '/sessions', icon: ClockIcon },
-  { name: 'Learning Resources', href: '/resources', icon: BookOpenIcon },
-  { name: 'Progress', href: '/progress', icon: ChartBarIcon },
+  { name: 'My Lab', href: '/dashboard', icon: HomeIcon },
 ];
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -22,7 +14,6 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   return (
     <>
-      {/* Mobile backdrop */}
       {isOpen && (
         <div
           className="fixed inset-0 bg-gray-600 bg-opacity-75 z-40 lg:hidden"
@@ -30,7 +21,6 @@ const Sidebar = ({ isOpen, onClose }) => {
         />
       )}
 
-      {/* Sidebar */}
       <div
         className={clsx(
           'fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-auto',
@@ -38,7 +28,6 @@ const Sidebar = ({ isOpen, onClose }) => {
         )}
       >
         <div className="h-full flex flex-col">
-          {/* Mobile close button */}
           <div className="flex items-center justify-between p-4 lg:hidden">
             <span className="text-xl font-bold text-gray-900">Menu</span>
             <button
@@ -49,7 +38,6 @@ const Sidebar = ({ isOpen, onClose }) => {
             </button>
           </div>
 
-          {/* Navigation */}
           <nav className="flex-1 px-4 py-6 space-y-2">
             {navigation.map((item) => {
               const isActive = location.pathname === item.href;
@@ -76,21 +64,6 @@ const Sidebar = ({ isOpen, onClose }) => {
               );
             })}
           </nav>
-
-          {/* Bottom section */}
-          <div className="p-4 border-t border-gray-200">
-            <div className="bg-gradient-to-br from-primary-50 to-cyber-accent/10 rounded-lg p-4">
-              <h3 className="text-sm font-semibold text-gray-900 mb-1">
-                Need Help?
-              </h3>
-              <p className="text-xs text-gray-600 mb-3">
-                Check out our documentation and tutorials
-              </p>
-              <button className="w-full bg-white text-primary-600 px-3 py-2 rounded-md text-xs font-medium hover:bg-gray-50 transition-colors">
-                View Docs
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </>

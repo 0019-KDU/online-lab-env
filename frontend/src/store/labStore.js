@@ -2,24 +2,9 @@ import { create } from 'zustand';
 import labService from '../services/labService';
 
 const useLabStore = create((set, get) => ({
-  templates: [],
   activeSessions: [],
   isLoading: false,
   error: null,
-
-  // Fetch lab templates
-  fetchTemplates: async () => {
-    set({ isLoading: true, error: null });
-    try {
-      const templates = await labService.getLabTemplates();
-      set({ templates, isLoading: false });
-    } catch (error) {
-      set({ 
-        error: error.response?.data?.message || 'Failed to fetch templates',
-        isLoading: false 
-      });
-    }
-  },
 
   // Fetch active sessions
   fetchActiveSessions: async () => {
@@ -36,12 +21,12 @@ const useLabStore = create((set, get) => ({
   },
 
   // Start a new lab
-  startLab: async (templateId) => {
+  startLab: async () => {
     set({ isLoading: true, error: null });
     try {
-      const session = await labService.startLab(templateId);
+      const session = await labService.startLab();
       set({ 
-        activeSessions: [...get().activeSessions, session],
+        activeSessions: [session],
         isLoading: false 
       });
       return session;
@@ -52,13 +37,13 @@ const useLabStore = create((set, get) => ({
     }
   },
 
-  // Stop a lab
-  stopLab: async (sessionId) => {
+  // Stop the lab
+  stopLab: async () => {
     set({ isLoading: true, error: null });
     try {
-      await labService.stopLab(sessionId);
+      await labService.stopLab();
       set({ 
-        activeSessions: get().activeSessions.filter(s => s._id !== sessionId),
+        activeSessions: [],
         isLoading: false 
       });
     } catch (error) {
@@ -70,7 +55,6 @@ const useLabStore = create((set, get) => ({
     }
   },
 
-  // Clear error
   clearError: () => set({ error: null }),
 }));
 

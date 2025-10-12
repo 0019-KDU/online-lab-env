@@ -1,12 +1,12 @@
-import k8s from '@kubernetes/client-node';
+import * as k8s from '@kubernetes/client-node';
 
 const kc = new k8s.KubeConfig();
 
 // Load config based on environment
 if (process.env.NODE_ENV === 'production') {
-  kc.loadFromCluster(); // Load from service account when running in cluster
+  kc.loadFromCluster();
 } else {
-  kc.loadFromDefault(); // Load from ~/.kube/config for local development
+  kc.loadFromDefault();
 }
 
 const k8sApi = kc.makeApiClient(k8s.CoreV1Api);
@@ -36,6 +36,11 @@ class K8sService {
         },
       },
       spec: {
+        imagePullSecrets: [
+          {
+            name: 'registry-cyberlab-registry',
+          },
+        ],
         containers: [
           {
             name: 'ubuntu-desktop',
@@ -55,23 +60,9 @@ class K8sService {
               },
             },
             env: [
-              { name: 'VNC_PASSWORD', value: 'student123' }, // Should be generated
+              { name: 'VNC_PASSWORD', value: 'student123' },
               { name: 'STUDENT_ID', value: studentId },
             ],
-            volumeMounts: [
-              {
-                name: 'student-workspace',
-                mountPath: '/home/student',
-              },
-            ],
-          },
-        ],
-        volumes: [
-          {
-            name: 'student-workspace',
-            persistentVolumeClaim: {
-              claimName: `pvc-${studentId}`,
-            },
           },
         ],
         restartPolicy: 'Never',
@@ -109,7 +100,7 @@ class K8sService {
 
       await k8sApi.createNamespacedService(namespace, serviceManifest);
 
-      // Get node IP (simplified - in production use LoadBalancer or Ingress)
+      // Get node IP
       const nodes = await k8sApi.listNode();
       const nodeIp = nodes.body.items[0].status.addresses.find(
         addr => addr.type === 'ExternalIP' || addr.type === 'InternalIP'
@@ -128,12 +119,8 @@ class K8sService {
   // Delete a lab pod
   async deleteLabPod(podName, namespace) {
     try {
-      // Delete pod
       await k8sApi.deleteNamespacedPod(podName, namespace);
-      
-      // Delete associated service
       await k8sApi.deleteNamespacedService(`svc-${podName}`, namespace);
-      
       return true;
     } catch (error) {
       console.error('Error deleting lab pod:', error);
@@ -157,11 +144,9 @@ class K8sService {
     const pvcName = `pvc-${studentId}`;
 
     try {
-      // Check if PVC exists
       await k8sApi.readNamespacedPersistentVolumeClaim(pvcName, namespace);
-      return pvcName; // Already exists
+      return pvcName;
     } catch (error) {
-      // PVC doesn't exist, create it
       const pvcManifest = {
         apiVersion: 'v1',
         kind: 'PersistentVolumeClaim',
