@@ -4,7 +4,13 @@
       "Bash(cp:*)",
       "Bash(tree:*)",
       "Bash(rm:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(docker build:*)",
+      "Bash(docker push:*)",
+      "Bash(docker stop:*)",
+      "Bash(docker rm:*)",
+      "Bash(docker run:*)",
+      "Bash(docker logs:*)"
     ],
     "deny": [],
     "ask": []
