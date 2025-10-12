@@ -12,7 +12,8 @@
       "Bash(docker run:*)",
       "Bash(docker logs:*)",
       "Bash(kubectl get:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(kubectl rollout restart:*)"
     ],
     "deny": [],
     "ask": []

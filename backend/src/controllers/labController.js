@@ -29,12 +29,15 @@ export const startLab = async (req, res) => {
       duration: 120, // 2 hours in minutes
     };
 
+    // Define namespace before creating session
+    const namespace = process.env.K8S_NAMESPACE || 'student-labs';
+
     // Create lab session record
     const labSession = await LabSession.create({
       student: studentId,
       labTemplate: null, // No template needed
       podName: `lab-${studentId}-${Date.now()}`,
-      namespace: process.env.K8S_NAMESPACE || 'student-labs',
+      namespace: namespace,
       status: 'pending',
       autoShutdownTime: new Date(Date.now() + defaultLabConfig.duration * 60000),
     });

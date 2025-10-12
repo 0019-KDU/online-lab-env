@@ -16,8 +16,23 @@ class K8sService {
   // Deploy a new lab pod for student
   async deployLabPod(labSession, template) {
     const podName = labSession.podName;
-    const namespace = labSession.namespace;
+    // Ensure we extract namespace from Mongoose document properly
+    const namespace = labSession.namespace || labSession._doc?.namespace || process.env.K8S_NAMESPACE || 'student-labs';
     const studentId = labSession.student.toString();
+
+    // Debug logging
+    console.log('deployLabPod called with:', {
+      podName,
+      namespace,
+      studentId,
+      hasNamespace: !!labSession.namespace,
+      labSessionType: typeof labSession,
+      isMongooseDoc: labSession.constructor?.name
+    });
+
+    if (!namespace) {
+      throw new Error('Namespace is required but was not provided');
+    }
 
     // Generate random VNC port (range: 30000-32767)
     const vncPort = Math.floor(Math.random() * (32767 - 30000) + 30000);
@@ -71,7 +86,12 @@ class K8sService {
 
     try {
       // Create the pod
-      await k8sApi.createNamespacedPod(namespace, podManifest);
+      console.log('About to call createNamespacedPod with namespace:', namespace);
+      const createPodResponse = await k8sApi.createNamespacedPod({
+        namespace: namespace,
+        body: podManifest
+      });
+      console.log('Pod created successfully:', createPodResponse.body?.metadata?.name);
 
       // Create service to expose the pod
       const serviceManifest = {

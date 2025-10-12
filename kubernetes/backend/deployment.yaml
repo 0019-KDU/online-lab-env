@@ -14,12 +14,11 @@ spec:
       labels:
         app: cyberlab-backend
     spec:
-      imagePullSecrets:                                    # ← ADD THIS LINE
-      - name: cyberlab-registry                   # ← ADD THIS LINE
       serviceAccountName: lab-manager
       containers:
       - name: backend
         image: registry.digitalocean.com/cyberlab-registry/cyberlab-backend:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 5000
           name: http
@@ -41,7 +40,7 @@ spec:
         - name: JWT_EXPIRE
           value: "7d"
         - name: K8S_NAMESPACE
-          value: "student-labs"
+          value: "student-labs" 
         - name: LAB_IMAGE
           value: "registry.digitalocean.com/cyberlab-registry/ubuntu-desktop-lab:latest"
         - name: LAB_SESSION_TIMEOUT
