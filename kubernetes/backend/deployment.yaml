@@ -15,7 +15,7 @@ spec:
         app: cyberlab-backend
     spec:
       imagePullSecrets:                                    # ← ADD THIS LINE
-      - name: registry-cyberlab-registry                   # ← ADD THIS LINE
+      - name: cyberlab-registry                   # ← ADD THIS LINE
       serviceAccountName: lab-manager
       containers:
       - name: backend
