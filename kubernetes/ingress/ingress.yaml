@@ -2,17 +2,16 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: cyberlab-ingress
-  namespace: default
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
-    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
 spec:
   ingressClassName: nginx
   rules:
-  - host:  152-42-156-112.nip.io  # REPLACE with your LoadBalancer IP (change dots to dashes)
+  - host: 152-42-156-112.nip.io
     http:
       paths:
+      # Backend API - must come first (more specific)
       - path: /api
         pathType: Prefix
         backend:
@@ -20,6 +19,7 @@ spec:
             name: backend-service
             port:
               number: 5000
+      # Frontend - catch all remaining paths
       - path: /
         pathType: Prefix
         backend:

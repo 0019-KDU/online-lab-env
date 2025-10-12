@@ -10,7 +10,9 @@
       "Bash(docker stop:*)",
       "Bash(docker rm:*)",
       "Bash(docker run:*)",
-      "Bash(docker logs:*)"
+      "Bash(docker logs:*)",
+      "Bash(kubectl get:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []
