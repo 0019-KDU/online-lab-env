@@ -118,7 +118,10 @@ class K8sService {
         },
       };
 
-      await k8sApi.createNamespacedService(namespace, serviceManifest);
+      await k8sApi.createNamespacedService({
+        namespace: namespace,
+        body: serviceManifest
+      });
 
       // Get node IP
       const nodes = await k8sApi.listNode();
@@ -139,8 +142,14 @@ class K8sService {
   // Delete a lab pod
   async deleteLabPod(podName, namespace) {
     try {
-      await k8sApi.deleteNamespacedPod(podName, namespace);
-      await k8sApi.deleteNamespacedService(`svc-${podName}`, namespace);
+      await k8sApi.deleteNamespacedPod({
+        name: podName,
+        namespace: namespace
+      });
+      await k8sApi.deleteNamespacedService({
+        name: `svc-${podName}`,
+        namespace: namespace
+      });
       return true;
     } catch (error) {
       console.error('Error deleting lab pod:', error);
@@ -151,7 +160,10 @@ class K8sService {
   // Check pod status
   async getPodStatus(podName, namespace) {
     try {
-      const pod = await k8sApi.readNamespacedPod(podName, namespace);
+      const pod = await k8sApi.readNamespacedPod({
+        name: podName,
+        namespace: namespace
+      });
       return pod.body.status.phase;
     } catch (error) {
       console.error('Error getting pod status:', error);
@@ -164,7 +176,10 @@ class K8sService {
     const pvcName = `pvc-${studentId}`;
 
     try {
-      await k8sApi.readNamespacedPersistentVolumeClaim(pvcName, namespace);
+      await k8sApi.readNamespacedPersistentVolumeClaim({
+        name: pvcName,
+        namespace: namespace
+      });
       return pvcName;
     } catch (error) {
       const pvcManifest = {
@@ -184,7 +199,10 @@ class K8sService {
         },
       };
 
-      await k8sApi.createNamespacedPersistentVolumeClaim(namespace, pvcManifest);
+      await k8sApi.createNamespacedPersistentVolumeClaim({
+        namespace: namespace,
+        body: pvcManifest
+      });
       return pvcName;
     }
   }
