@@ -9,7 +9,7 @@ const labSessionSchema = new mongoose.Schema({
   labTemplate: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'LabTemplate',
-    required: true,
+    required: false, // ← Changed to false (optional)
   },
   podName: {
     type: String,
