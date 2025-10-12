@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const labTemplateSchema = new mongoose.Schema({
   name: {
@@ -45,4 +45,4 @@ const labTemplateSchema = new mongoose.Schema({
   timestamps: true,
 });
 
-module.exports = mongoose.model('LabTemplate', labTemplateSchema);
+export default mongoose.model('LabTemplate', labTemplateSchema);

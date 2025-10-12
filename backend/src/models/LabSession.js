@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const labSessionSchema = new mongoose.Schema({
   student: {
@@ -55,4 +55,4 @@ const labSessionSchema = new mongoose.Schema({
 // Auto-cleanup index
 labSessionSchema.index({ endTime: 1 }, { expireAfterSeconds: 86400 }); // 24 hours
 
-module.exports = mongoose.model('LabSession', labSessionSchema);
+export default mongoose.model('LabSession', labSessionSchema);

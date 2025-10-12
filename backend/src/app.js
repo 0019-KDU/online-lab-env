@@ -1,7 +1,9 @@
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import authRoutes from './routes/auth.js';
+import labsRoutes from './routes/labs.js';
 
 const app = express();
 
@@ -19,8 +21,9 @@ const limiter = rateLimit({
 app.use('/api/', limiter);
 
 // Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/labs', require('./routes/labs'));
+app.use('/api/auth', authRoutes);
+app.use('/api/labs', labsRoutes);
+
 
 // Health check
 app.get('/health', (req, res) => {
@@ -36,4 +39,4 @@ app.use((err, req, res, next) => {
   });
 });
 
-module.exports = app;
+export default app;

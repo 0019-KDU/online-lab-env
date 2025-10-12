@@ -3,7 +3,8 @@
     "allow": [
       "Bash(cp:*)",
       "Bash(tree:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

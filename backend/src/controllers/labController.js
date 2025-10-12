@@ -1,11 +1,11 @@
-const LabSession = require('../models/LabSession');
-const LabTemplate = require('../models/LabTemplate');
-const k8sService = require('../services/k8sService');
+import LabSession from '../models/LabSession.js';
+import LabTemplate from '../models/LabTemplate.js';
+import k8sService from '../services/k8sService.js';
 
 // @desc    Get all available lab templates
 // @route   GET /api/labs/templates
 // @access  Private
-exports.getLabTemplates = async (req, res) => {
+export const getLabTemplates = async (req, res) => {
   try {
     const templates = await LabTemplate.find({ isActive: true });
     res.json(templates);
@@ -17,7 +17,7 @@ exports.getLabTemplates = async (req, res) => {
 // @desc    Start a new lab session
 // @route   POST /api/labs/start
 // @access  Private
-exports.startLab = async (req, res) => {
+export const startLab = async (req, res) => {
   try {
     const { templateId } = req.body;
     const studentId = req.student._id;
@@ -69,7 +69,7 @@ exports.startLab = async (req, res) => {
 // @desc    Get student's active lab sessions
 // @route   GET /api/labs/my-sessions
 // @access  Private
-exports.getMySessions = async (req, res) => {
+export const getMySessions = async (req, res) => {
   try {
     const sessions = await LabSession.find({
       student: req.student._id,
@@ -85,7 +85,7 @@ exports.getMySessions = async (req, res) => {
 // @desc    Stop a lab session
 // @route   POST /api/labs/:sessionId/stop
 // @access  Private
-exports.stopLab = async (req, res) => {
+export const stopLab = async (req, res) => {
   try {
     const session = await LabSession.findById(req.params.sessionId);
 

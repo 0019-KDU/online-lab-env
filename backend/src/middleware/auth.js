@@ -1,7 +1,7 @@
-const jwt = require('jsonwebtoken');
-const Student = require('../models/Student');
+import jwt from 'jsonwebtoken';
+import Student from '../models/Student.js';
 
-exports.protect = async (req, res, next) => {
+export const protect = async (req, res, next) => {
   let token;
 
   if (
@@ -35,7 +35,7 @@ exports.protect = async (req, res, next) => {
 };
 
 // Authorize specific roles
-exports.authorize = (...roles) => {
+export const authorize = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.student.role)) {
       return res.status(403).json({

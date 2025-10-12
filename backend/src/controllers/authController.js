@@ -1,5 +1,5 @@
-const jwt = require('jsonwebtoken');
-const Student = require('../models/Student');
+import jwt from 'jsonwebtoken';
+import Student from '../models/Student.js';
 
 // Generate JWT Token
 const generateToken = (id) => {
@@ -11,7 +11,7 @@ const generateToken = (id) => {
 // @desc    Register new student
 // @route   POST /api/auth/register
 // @access  Public
-exports.register = async (req, res) => {
+export const register = async (req, res) => {
   try {
     const { email, password, firstName, lastName, studentId } = req.body;
 
@@ -49,7 +49,7 @@ exports.register = async (req, res) => {
 // @desc    Login student
 // @route   POST /api/auth/login
 // @access  Public
-exports.login = async (req, res) => {
+export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -76,7 +76,7 @@ exports.login = async (req, res) => {
 // @desc    Get current student profile
 // @route   GET /api/auth/me
 // @access  Private
-exports.getMe = async (req, res) => {
+export const getMe = async (req, res) => {
   try {
     const student = await Student.findById(req.student._id).select('-password');
     res.json(student);

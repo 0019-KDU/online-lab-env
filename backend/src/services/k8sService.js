@@ -1,4 +1,4 @@
-const k8s = require('@kubernetes/client-node');
+import k8s from '@kubernetes/client-node';
 
 const kc = new k8s.KubeConfig();
 
@@ -185,4 +185,4 @@ class K8sService {
   }
 }
 
-module.exports = new K8sService();
+export default new K8sService();
