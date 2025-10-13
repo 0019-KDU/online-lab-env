@@ -49,6 +49,8 @@ spec:
           value: "7200000"
         - name: MAX_CONCURRENT_LABS
           value: "3"
+        - name: PUBLIC_NODE_IP
+          value: "152.42.156.112"
         resources:
           requests:
             memory: "256Mi"

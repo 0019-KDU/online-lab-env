@@ -123,26 +123,37 @@ class K8sService {
         body: serviceManifest
       });
 
-      // Get node IP
-      const nodesResponse = await k8sApi.listNode();
+      // Get node/public IP for lab access
+      let nodeIp;
 
-      // Handle different response structures
-      const nodesList = nodesResponse.items || nodesResponse.body?.items || [];
-      if (nodesList.length === 0) {
-        throw new Error('No nodes found in cluster');
+      // Option 1: Use configured public IP (for cloud providers like DigitalOcean)
+      if (process.env.PUBLIC_NODE_IP) {
+        nodeIp = process.env.PUBLIC_NODE_IP;
+        console.log('Using configured PUBLIC_NODE_IP:', nodeIp);
+      } else {
+        // Option 2: Auto-detect from node addresses
+        const nodesResponse = await k8sApi.listNode();
+        const nodesList = nodesResponse.items || nodesResponse.body?.items || [];
+
+        if (nodesList.length === 0) {
+          throw new Error('No nodes found in cluster');
+        }
+
+        const node = nodesList[0];
+
+        // Prefer ExternalIP, then InternalIP as fallback
+        let address = node.status.addresses.find(addr => addr.type === 'ExternalIP');
+        if (!address) {
+          address = node.status.addresses.find(addr => addr.type === 'InternalIP');
+        }
+
+        if (!address) {
+          throw new Error('No valid IP address found for node');
+        }
+
+        nodeIp = address.address;
+        console.log('Auto-detected node IP:', nodeIp, 'Type:', address.type);
       }
-
-      const node = nodesList[0];
-      const address = node.status.addresses.find(
-        addr => addr.type === 'ExternalIP' || addr.type === 'InternalIP'
-      );
-
-      if (!address) {
-        throw new Error('No valid IP address found for node');
-      }
-
-      const nodeIp = address.address;
-      console.log('Using node IP:', nodeIp);
 
       return {
         accessUrl: `http://${nodeIp}:${vncPort}/vnc.html?autoconnect=true`,
