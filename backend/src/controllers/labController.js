@@ -37,8 +37,8 @@ export const startLab = async (req, res) => {
       name: 'Ubuntu Desktop Lab',
       image: process.env.LAB_IMAGE || 'registry.digitalocean.com/cyberlab-registry/ubuntu-desktop-lab:latest',
       resources: {
-        cpu: '1',
-        memory: '2Gi',
+        cpu: '500m',    // Reduced from 1 core to 500m (0.5 core)
+        memory: '1Gi',  // Reduced from 2Gi to 1Gi
       },
       duration: 120, // 2 hours in minutes
     };
