@@ -120,17 +120,24 @@ class K8sService {
         },
       };
 
-      const serviceResponse = await k8sApi.createNamespacedService({
-        namespace: namespace,
-        body: serviceManifest
-      });
+      let serviceResponse;
+      try {
+        serviceResponse = await k8sApi.createNamespacedService({
+          namespace: namespace,
+          body: serviceManifest
+        });
+        console.log('Service created successfully:', `svc-${podName}`);
+      } catch (svcError) {
+        console.error('Failed to create service:', svcError.body || svcError.message);
+        throw new Error(`Failed to create LoadBalancer service: ${svcError.body?.message || svcError.message}`);
+      }
 
-      console.log('Service created successfully:', `svc-${podName}`);
-
-      // Wait for LoadBalancer IP to be assigned (max 30 seconds)
+      // Wait for LoadBalancer IP to be assigned (max 60 seconds for DigitalOcean)
       let loadBalancerIP = null;
       let attempts = 0;
-      const maxAttempts = 30;
+      const maxAttempts = 60;
+
+      console.log('Waiting for DigitalOcean to assign LoadBalancer IP...');
 
       while (!loadBalancerIP && attempts < maxAttempts) {
         try {
@@ -142,25 +149,28 @@ class K8sService {
           const ingress = svcStatus.body?.status?.loadBalancer?.ingress;
           if (ingress && ingress.length > 0) {
             loadBalancerIP = ingress[0].ip || ingress[0].hostname;
-            console.log('LoadBalancer IP assigned:', loadBalancerIP);
+            console.log('✅ LoadBalancer IP assigned:', loadBalancerIP);
             break;
           }
 
-          console.log(`Waiting for LoadBalancer IP... attempt ${attempts + 1}/${maxAttempts}`);
+          if (attempts % 5 === 0) {
+            console.log(`⏳ Waiting for LoadBalancer IP... ${attempts}s elapsed`);
+          }
           await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
           attempts++;
         } catch (err) {
-          console.error('Error checking service status:', err);
+          console.error('Error checking service status:', err.body || err.message);
           attempts++;
         }
       }
 
       if (!loadBalancerIP) {
-        throw new Error('LoadBalancer IP not assigned after 30 seconds');
+        console.error('LoadBalancer IP not assigned after timeout');
+        throw new Error('LoadBalancer IP not assigned after 60 seconds. Check DigitalOcean LoadBalancer quota and status.');
       }
 
       const accessUrl = `http://${loadBalancerIP}:6080/vnc.html?autoconnect=true`;
-      console.log('Generated access URL:', accessUrl);
+      console.log('✅ Generated access URL:', accessUrl);
 
       return {
         accessUrl: accessUrl,
@@ -169,7 +179,8 @@ class K8sService {
       };
     } catch (error) {
       console.error('Error deploying lab pod:', error);
-      throw new Error('Failed to deploy lab environment');
+      console.error('Error details:', error.body || error.message || error);
+      throw new Error(`Failed to deploy lab environment: ${error.message}`);
     }
   }
 

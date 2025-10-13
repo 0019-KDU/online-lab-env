@@ -3,8 +3,23 @@ import labService from '../services/labService';
 
 const useLabStore = create((set, get) => ({
   activeSessions: [],
+  templates: [],
   isLoading: false,
   error: null,
+
+  // Fetch lab templates
+  fetchTemplates: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const templates = await labService.getTemplates();
+      set({ templates: templates, isLoading: false });
+    } catch (error) {
+      set({
+        error: error.response?.data?.message || 'Failed to fetch templates',
+        isLoading: false
+      });
+    }
+  },
 
   // Fetch active sessions
   fetchActiveSessions: async () => {

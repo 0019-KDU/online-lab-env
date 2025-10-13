@@ -1,5 +1,19 @@
 import LabSession from '../models/LabSession.js';
+import LabTemplate from '../models/LabTemplate.js';
 import k8sService from '../services/k8sService.js';
+
+// @desc    Get all active lab templates
+// @route   GET /api/labs/templates
+// @access  Private
+export const getTemplates = async (req, res) => {
+  try {
+    const templates = await LabTemplate.find({ isActive: true });
+    res.json(templates);
+  } catch (error) {
+    console.error('Error fetching templates:', error);
+    res.status(500).json({ message: 'Failed to fetch lab templates' });
+  }
+};
 
 // @desc    Start a new lab session (simple - no template selection)
 // @route   POST /api/labs/start
