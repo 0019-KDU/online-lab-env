@@ -11,39 +11,42 @@
 /* Custom component styles */
 @layer components {
   .btn-primary {
-    background-color: #2563eb; /* bg-blue-600 */
-    color: #ffffff; /* text-white */
+    background-color: #2563eb !important; /* bg-blue-600 */
+    color: #ffffff !important; /* text-white */
     padding: 0.5rem 1rem; /* px-4 py-2 */
     border-radius: 0.5rem; /* rounded-lg */
     font-weight: 500; /* font-medium */
     transition: color 0.2s, background-color 0.2s; /* transition-colors duration-200 */
+    border: none;
   }
-  .btn-primary:hover {
-    background-color: #1d4ed8; /* hover:bg-blue-700 */
+  .btn-primary:hover:not(:disabled) {
+    background-color: #1d4ed8 !important; /* hover:bg-blue-700 */
   }
 
   .btn-secondary {
-    background-color: #e5e7eb; /* bg-gray-200 */
-    color: #1f2937; /* text-gray-800 */
+    background-color: #e5e7eb !important; /* bg-gray-200 */
+    color: #1f2937 !important; /* text-gray-800 */
     padding: 0.5rem 1rem;
     border-radius: 0.5rem;
     font-weight: 500;
     transition: color 0.2s, background-color 0.2s;
+    border: none;
   }
-  .btn-secondary:hover {
-    background-color: #d1d5db; /* hover:bg-gray-300 */
+  .btn-secondary:hover:not(:disabled) {
+    background-color: #d1d5db !important; /* hover:bg-gray-300 */
   }
 
   .btn-danger {
-    background-color: #dc2626; /* bg-red-600 */
-    color: #ffffff;
+    background-color: #dc2626 !important; /* bg-red-600 */
+    color: #ffffff !important;
     padding: 0.5rem 1rem;
     border-radius: 0.5rem;
     font-weight: 500;
     transition: color 0.2s, background-color 0.2s;
+    border: none;
   }
-  .btn-danger:hover {
-    background-color: #b91c1c; /* hover:bg-red-700 */
+  .btn-danger:hover:not(:disabled) {
+    background-color: #b91c1c !important; /* hover:bg-red-700 */
   }
 
   .card {
