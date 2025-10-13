@@ -17,9 +17,13 @@ spec:
       containers:
       - name: frontend
         image: registry.digitalocean.com/cyberlab-registry/cyberlab-frontend:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 80
           name: http
+        env:
+        - name: VITE_API_URL
+          value: "/api"
         resources:
           requests:
             memory: "128Mi"
