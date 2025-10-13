@@ -90,21 +90,19 @@ class K8sService {
       });
       console.log('Pod created successfully:', createPodResponse.body?.metadata?.name);
 
-      // Create service to expose the pod
-      // Use LoadBalancer for DigitalOcean (or NodePort with annotations)
+      // Generate random NodePort (30000-32767)
+      const nodePort = Math.floor(Math.random() * (32767 - 30000) + 30000);
+
+      // Create NodePort service
       const serviceManifest = {
         apiVersion: 'v1',
         kind: 'Service',
         metadata: {
           name: `svc-${podName}`,
           namespace: namespace,
-          annotations: {
-            'service.beta.kubernetes.io/do-loadbalancer-protocol': 'http',
-            'service.beta.kubernetes.io/do-loadbalancer-algorithm': 'round_robin'
-          }
         },
         spec: {
-          type: 'LoadBalancer',
+          type: 'NodePort',
           selector: {
             app: 'student-lab',
             session: labSession._id.toString(),
@@ -113,6 +111,7 @@ class K8sService {
             {
               port: 6080,
               targetPort: 6080,
+              nodePort: nodePort,
               protocol: 'TCP',
               name: 'novnc'
             },
@@ -120,62 +119,27 @@ class K8sService {
         },
       };
 
-      let serviceResponse;
       try {
-        serviceResponse = await k8sApi.createNamespacedService({
+        await k8sApi.createNamespacedService({
           namespace: namespace,
           body: serviceManifest
         });
-        console.log('Service created successfully:', `svc-${podName}`);
+        console.log('✅ NodePort Service created:', `svc-${podName}`, 'Port:', nodePort);
       } catch (svcError) {
         console.error('Failed to create service:', svcError.body || svcError.message);
-        throw new Error(`Failed to create LoadBalancer service: ${svcError.body?.message || svcError.message}`);
+        throw new Error(`Failed to create service: ${svcError.body?.message || svcError.message}`);
       }
 
-      // Wait for LoadBalancer IP to be assigned (max 60 seconds for DigitalOcean)
-      let loadBalancerIP = null;
-      let attempts = 0;
-      const maxAttempts = 60;
+      // Use the public IP configured in environment
+      const publicIP = process.env.PUBLIC_NODE_IP || '152.42.156.112';
 
-      console.log('Waiting for DigitalOcean to assign LoadBalancer IP...');
-
-      while (!loadBalancerIP && attempts < maxAttempts) {
-        try {
-          const svcStatus = await k8sApi.readNamespacedService({
-            name: `svc-${podName}`,
-            namespace: namespace
-          });
-
-          const ingress = svcStatus.body?.status?.loadBalancer?.ingress;
-          if (ingress && ingress.length > 0) {
-            loadBalancerIP = ingress[0].ip || ingress[0].hostname;
-            console.log('✅ LoadBalancer IP assigned:', loadBalancerIP);
-            break;
-          }
-
-          if (attempts % 5 === 0) {
-            console.log(`⏳ Waiting for LoadBalancer IP... ${attempts}s elapsed`);
-          }
-          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
-          attempts++;
-        } catch (err) {
-          console.error('Error checking service status:', err.body || err.message);
-          attempts++;
-        }
-      }
-
-      if (!loadBalancerIP) {
-        console.error('LoadBalancer IP not assigned after timeout');
-        throw new Error('LoadBalancer IP not assigned after 60 seconds. Check DigitalOcean LoadBalancer quota and status.');
-      }
-
-      const accessUrl = `http://${loadBalancerIP}:6080/vnc.html?autoconnect=true`;
+      const accessUrl = `http://${publicIP}:${nodePort}/vnc.html?autoconnect=true`;
       console.log('✅ Generated access URL:', accessUrl);
 
       return {
         accessUrl: accessUrl,
-        vncPort: 6080,
-        loadBalancerIP: loadBalancerIP
+        vncPort: nodePort,
+        publicIP: publicIP
       };
     } catch (error) {
       console.error('Error deploying lab pod:', error);
