@@ -124,13 +124,28 @@ class K8sService {
       });
 
       // Get node IP
-      const nodes = await k8sApi.listNode();
-      const nodeIp = nodes.body.items[0].status.addresses.find(
+      const nodesResponse = await k8sApi.listNode();
+
+      // Handle different response structures
+      const nodesList = nodesResponse.items || nodesResponse.body?.items || [];
+      if (nodesList.length === 0) {
+        throw new Error('No nodes found in cluster');
+      }
+
+      const node = nodesList[0];
+      const address = node.status.addresses.find(
         addr => addr.type === 'ExternalIP' || addr.type === 'InternalIP'
-      ).address;
+      );
+
+      if (!address) {
+        throw new Error('No valid IP address found for node');
+      }
+
+      const nodeIp = address.address;
+      console.log('Using node IP:', nodeIp);
 
       return {
-        accessUrl: `http://${nodeIp}:${vncPort}`,
+        accessUrl: `http://${nodeIp}:${vncPort}/vnc.html?autoconnect=true`,
         vncPort: vncPort,
       };
     } catch (error) {
