@@ -34,9 +34,6 @@ class K8sService {
       throw new Error('Namespace is required but was not provided');
     }
 
-    // Generate random VNC port (range: 30000-32767)
-    const vncPort = Math.floor(Math.random() * (32767 - 30000) + 30000);
-
     // Pod specification
     const podManifest = {
       apiVersion: 'v1',
@@ -94,15 +91,20 @@ class K8sService {
       console.log('Pod created successfully:', createPodResponse.body?.metadata?.name);
 
       // Create service to expose the pod
+      // Use LoadBalancer for DigitalOcean (or NodePort with annotations)
       const serviceManifest = {
         apiVersion: 'v1',
         kind: 'Service',
         metadata: {
           name: `svc-${podName}`,
           namespace: namespace,
+          annotations: {
+            'service.beta.kubernetes.io/do-loadbalancer-protocol': 'http',
+            'service.beta.kubernetes.io/do-loadbalancer-algorithm': 'round_robin'
+          }
         },
         spec: {
-          type: 'NodePort',
+          type: 'LoadBalancer',
           selector: {
             app: 'student-lab',
             session: labSession._id.toString(),
@@ -111,53 +113,59 @@ class K8sService {
             {
               port: 6080,
               targetPort: 6080,
-              nodePort: vncPort,
               protocol: 'TCP',
+              name: 'novnc'
             },
           ],
         },
       };
 
-      await k8sApi.createNamespacedService({
+      const serviceResponse = await k8sApi.createNamespacedService({
         namespace: namespace,
         body: serviceManifest
       });
 
-      // Get node/public IP for lab access
-      let nodeIp;
+      console.log('Service created successfully:', `svc-${podName}`);
 
-      // Option 1: Use configured public IP (for cloud providers like DigitalOcean)
-      if (process.env.PUBLIC_NODE_IP) {
-        nodeIp = process.env.PUBLIC_NODE_IP;
-        console.log('Using configured PUBLIC_NODE_IP:', nodeIp);
-      } else {
-        // Option 2: Auto-detect from node addresses
-        const nodesResponse = await k8sApi.listNode();
-        const nodesList = nodesResponse.items || nodesResponse.body?.items || [];
+      // Wait for LoadBalancer IP to be assigned (max 30 seconds)
+      let loadBalancerIP = null;
+      let attempts = 0;
+      const maxAttempts = 30;
 
-        if (nodesList.length === 0) {
-          throw new Error('No nodes found in cluster');
+      while (!loadBalancerIP && attempts < maxAttempts) {
+        try {
+          const svcStatus = await k8sApi.readNamespacedService({
+            name: `svc-${podName}`,
+            namespace: namespace
+          });
+
+          const ingress = svcStatus.body?.status?.loadBalancer?.ingress;
+          if (ingress && ingress.length > 0) {
+            loadBalancerIP = ingress[0].ip || ingress[0].hostname;
+            console.log('LoadBalancer IP assigned:', loadBalancerIP);
+            break;
+          }
+
+          console.log(`Waiting for LoadBalancer IP... attempt ${attempts + 1}/${maxAttempts}`);
+          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+          attempts++;
+        } catch (err) {
+          console.error('Error checking service status:', err);
+          attempts++;
         }
-
-        const node = nodesList[0];
-
-        // Prefer ExternalIP, then InternalIP as fallback
-        let address = node.status.addresses.find(addr => addr.type === 'ExternalIP');
-        if (!address) {
-          address = node.status.addresses.find(addr => addr.type === 'InternalIP');
-        }
-
-        if (!address) {
-          throw new Error('No valid IP address found for node');
-        }
-
-        nodeIp = address.address;
-        console.log('Auto-detected node IP:', nodeIp, 'Type:', address.type);
       }
 
+      if (!loadBalancerIP) {
+        throw new Error('LoadBalancer IP not assigned after 30 seconds');
+      }
+
+      const accessUrl = `http://${loadBalancerIP}:6080/vnc.html?autoconnect=true`;
+      console.log('Generated access URL:', accessUrl);
+
       return {
-        accessUrl: `http://${nodeIp}:${vncPort}/vnc.html?autoconnect=true`,
-        vncPort: vncPort,
+        accessUrl: accessUrl,
+        vncPort: 6080,
+        loadBalancerIP: loadBalancerIP
       };
     } catch (error) {
       console.error('Error deploying lab pod:', error);
