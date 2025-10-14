@@ -128,14 +128,19 @@ const DashboardPage = () => {
             </div>
 
             {/* Desktop View */}
-            <div className="flex-1 bg-gray-900 min-h-0">
+            <div className="flex-1 bg-gray-900 flex items-center justify-center overflow-hidden">
               {labSession.accessUrl ? (
                 <iframe
                   src={labSession.accessUrl}
-                  className="w-full h-full border-0"
+                  className="border-0"
                   title="Ubuntu Desktop"
                   allow="clipboard-read; clipboard-write"
-                  style={{ height: 'calc(100vh - 120px)' }}
+                  style={{
+                    width: '95%',
+                    height: '95%',
+                    maxWidth: '1920px',
+                    maxHeight: 'calc(100vh - 140px)'
+                  }}
                 />
               ) : (
                 <div className="h-full flex items-center justify-center">
