@@ -388,11 +388,3 @@ kubectl get nodes -o wide
 ## 📄 License
 
 MIT
-
-## 👥 Contributors
-
-- Your Team Name
-
-## 📞 Support
-
-For issues and questions, please create an issue on GitHub.

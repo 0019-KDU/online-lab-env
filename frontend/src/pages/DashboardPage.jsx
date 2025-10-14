@@ -51,14 +51,14 @@ const DashboardPage = () => {
 
   return (
     <Layout>
-      <div className="fixed inset-0 top-16 flex flex-col">
+      <div className="h-screen flex flex-col">
         <ErrorMessage message={error} onClose={clearError} />
 
         {!labSession ? (
           // No active lab - show start button
-          <div className="flex-1 flex items-center justify-center">
+          <div className="flex-1 flex items-center justify-center bg-gray-50">
             <div className="text-center">
-              <div className="mx-auto h-24 w-24 bg-gradient-to-br from-cyber-accent to-primary-500 rounded-full flex items-center justify-center mb-8">
+              <div className="mx-auto h-24 w-24 bg-blue-600 rounded-full flex items-center justify-center mb-8 shadow-lg">
                 <svg
                   className="w-12 h-12 text-white"
                   fill="none"
@@ -129,20 +129,21 @@ const DashboardPage = () => {
             </div>
 
             {/* Desktop View */}
-            <div className="flex-1 bg-gray-900 flex items-center justify-center overflow-hidden">
+            <div className="flex-1 bg-gray-900 flex items-center justify-center p-4 overflow-hidden">
               {labSession.accessUrl ? (
-                <iframe
-                  src={labSession.accessUrl}
-                  className="border-0"
-                  title="Ubuntu Desktop"
-                  allow="clipboard-read; clipboard-write"
-                  style={{
-                    width: '95%',
-                    height: '95%',
-                    maxWidth: '1920px',
-                    maxHeight: 'calc(100vh - 140px)'
-                  }}
-                />
+                <div className="w-full h-full max-w-screen-2xl flex items-center justify-center">
+                  <iframe
+                    src={labSession.accessUrl}
+                    className="border-2 border-gray-700 rounded-lg shadow-2xl"
+                    title="Ubuntu Desktop"
+                    allow="clipboard-read; clipboard-write"
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      maxHeight: 'calc(100vh - 180px)'
+                    }}
+                  />
+                </div>
               ) : (
                 <div className="h-full flex items-center justify-center">
                   <LoadingSpinner message="Preparing your desktop..." />
