@@ -50,7 +50,7 @@ class K8sService {
       spec: {
         imagePullSecrets: [
           {
-            name: 'registry-cyberlab-registry',
+            name: 'cyberlab-registry',
           },
         ],
         containers: [
