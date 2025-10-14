@@ -51,7 +51,7 @@ const DashboardPage = () => {
 
   return (
     <Layout>
-      <div className="h-full flex flex-col">
+      <div className="fixed inset-0 top-16 flex flex-col">
         <ErrorMessage message={error} onClose={clearError} />
 
         {!labSession ? (
@@ -128,13 +128,14 @@ const DashboardPage = () => {
             </div>
 
             {/* Desktop View */}
-            <div className="flex-1 bg-gray-900">
+            <div className="flex-1 bg-gray-900 min-h-0">
               {labSession.accessUrl ? (
                 <iframe
                   src={labSession.accessUrl}
                   className="w-full h-full border-0"
                   title="Ubuntu Desktop"
                   allow="clipboard-read; clipboard-write"
+                  style={{ height: 'calc(100vh - 120px)' }}
                 />
               ) : (
                 <div className="h-full flex items-center justify-center">
