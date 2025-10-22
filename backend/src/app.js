@@ -5,6 +5,7 @@ import rateLimit from 'express-rate-limit';
 
 import authRoutes from './routes/auth.js';
 import labRoutes from './routes/labs.js';
+import adminRoutes from './routes/admin.js';
 
 const app = express();
 
@@ -43,6 +44,7 @@ app.get('/api/health', (req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/labs', labRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Debug logging
 app.use((req, res, next) => {

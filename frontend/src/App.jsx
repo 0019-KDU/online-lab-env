@@ -1,10 +1,12 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import AdminRoute from './components/auth/AdminRoute';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import LabsPage from './pages/LabsPage';
 import SessionsPage from './pages/SessionsPage';
+import AdminDashboard from './pages/AdminDashboard';
 import NotFoundPage from './pages/NotFoundPage';
 
 function App() {
@@ -38,6 +40,14 @@ function App() {
             <ProtectedRoute>
               <SessionsPage />
             </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminDashboard />
+            </AdminRoute>
           }
         />
 

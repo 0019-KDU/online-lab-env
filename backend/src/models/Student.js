@@ -26,6 +26,17 @@ const studentSchema = new mongoose.Schema({
     type: String,
     unique: true,
   },
+  registrationNumber: {
+    type: String,
+    unique: true,
+    sparse: true,
+  },
+  enrollDate: {
+    type: Date,
+  },
+  endDate: {
+    type: Date,
+  },
   enrolledCourses: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Course',
