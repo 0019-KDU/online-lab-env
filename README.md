@@ -1,1319 +1,2118 @@
-# CyberLab - On-Demand Lab Environment for LMS
+# CyberLab - Online Lab Environment# CyberLab - On-Demand Lab Environment for LMS
 
-Provides each student with their own Ubuntu desktop (graphical), accessible directly through a web browser. All desktops are containerized and orchestrated on a Kubernetes cluster.
 
-## 🎯 System Architecture (🔒 Secure with HTTPS)
 
-```
+> **Complete Browser-Based Virtual Lab Platform on DigitalOcean Kubernetes**Provides each student with their own Ubuntu desktop (graphical), accessible directly through a web browser. All desktops are containerized and orchestrated on a Kubernetes cluster.
+
+
+
+A production-ready online lab environment that provides students with isolated Ubuntu desktop sessions accessible through web browsers. Built with modern DevOps practices including GitOps, CI/CD automation, and comprehensive monitoring.## 🎯 System Architecture (🔒 Secure with HTTPS)
+
+
+
+---```
+
 ┌─────────────────────────────────────────────────────────────┐
-│                      STUDENT BROWSER                         │
+
+## 📋 Table of Contents│                      STUDENT BROWSER                         │
+
 │  https://152-42-156-112.nip.io (Main App - HTTPS)          │
-│  https://labs.152-42-156-112.nip.io/lab/{id} (Labs - HTTPS) │
-└────────────────┬────────────────────────────────────────────┘
-                 │ TLS 1.3 Encrypted
-                 ▼
-┌─────────────────────────────────────────────────────────────┐
-│           NGINX INGRESS CONTROLLER (LoadBalancer)           │
-│  • SSL/TLS termination (Let's Encrypt certificates)         │
-│  • Routes /api → Backend    /  → Frontend                   │
-│  • Dynamic lab routing: /lab/{sessionId} → Student Pod      │
-│  • WebSocket support for VNC streaming                      │
-└────────┬────────────────────────┬───────────────────────────┘
-         │                        │
-         ▼                        ▼
-┌──────────────────┐    ┌──────────────────┐
-│  Backend Service │    │ Frontend Service │
-│  (ClusterIP)     │    │  (ClusterIP)     │
-│  Port: 5000      │    │  Port: 80        │
-└────────┬─────────┘    └──────────────────┘
-         │
-         ▼
-┌──────────────────────────────────────────────────────────┐
-│            Backend Deployment (2 replicas)                │
-│  • Node.js + Express                                      │
-│  • MongoDB (Atlas Cloud)                                  │
-│  • Kubernetes API Client                                  │
-│  • Dynamically creates: Pods + Services + Ingresses       │
-└────────┬─────────────────────────────────────────────────┘
-         │
-         │ Creates pods/services/ingresses dynamically
-         ▼
-┌──────────────────────────────────────────────────────────┐
-│          student-labs Namespace                           │
-│                                                            │
-│  ┌────────────────┐  ┌────────────┐  ┌──────────────┐   │
-│  │ Lab Pod        │  │ ClusterIP  │  │  Ingress     │   │
-│  │ Ubuntu Desktop │◄─│   Service  │◄─│  /lab/{id}   │   │
-│  │ noVNC:6080     │  │ Port: 6080 │  │  (HTTPS)     │   │
-│  │ + PVC Storage  │  └────────────┘  └──────────────┘   │
-│  └────────────────┘                                      │
-└──────────────────────────────────────────────────────────┘
-         │
-         │ Accessible via (🔒 HTTPS!)
-         ▼
-https://labs.152-42-156-112.nip.io/lab/{sessionId}/vnc.html?autoconnect=true
-```
 
-### 🔐 Security Features
-- ✅ **HTTPS Everywhere** - All traffic encrypted with TLS 1.3
-- ✅ **SSL Certificates** - Free auto-renewing certificates from Let's Encrypt
-- ✅ **Single Entry Point** - Only port 443 exposed (vs 30000-32767 with NodePort)
-- ✅ **Path-Based Routing** - Clean URLs with ingress-based isolation
-- ✅ **Persistent Storage** - Each student gets 5Gi PVC mounted at /home/student
+# CyberLab - Online Lab Environment
 
-## 🚀 Tech Stack
+> Complete browser-based virtual lab platform running on DigitalOcean Kubernetes (DOKS).
 
-### **Frontend**
-- React 19.1 + Vite 7.1
-- TailwindCSS v4
-- Zustand (State Management)
-- React Router v7
-- Axios
+This repository contains the source and deployment manifests for CyberLab — a cloud-native platform that provides students with isolated Ubuntu desktop sessions (XFCE) accessible through a browser (noVNC). The system uses GitOps with ArgoCD and CI/CD with GitHub Actions.
 
-### **Backend**
-- Node.js + Express 5.1
-- MongoDB (Mongoose)
-- JWT Authentication
-- Kubernetes Client Node
-- Docker
+---
 
-### **Infrastructure**
-- Kubernetes (DigitalOcean)
-- Docker Registry (DigitalOcean)
-- NGINX Ingress Controller
-- Ubuntu 22.04 + XFCE Desktop
-- noVNC (Web-based VNC client)
+## Table of Contents
 
-## 📋 Prerequisites
+- [System Overview](#system-overview)
 
-- DigitalOcean Kubernetes Cluster
-- DigitalOcean Container Registry
-- MongoDB Atlas Account
-- `kubectl` configured
-- `doctl` CLI (optional)
-- Docker installed locally
-
-## 🔧 Installation
-
-### 1. Clone Repository
-
-```bash
-git clone <repo-url>
-cd online-lab-env
-```
-
-### 2. Configure Environment Variables
-
-**Backend (.env):**
-```env
-NODE_ENV=production
-PORT=5000
-MONGODB_URI=mongodb+srv://...
-JWT_SECRET=your-secret-key
-JWT_EXPIRE=7d
-K8S_NAMESPACE=student-labs
-LAB_IMAGE=registry.digitalocean.com/cyberlab-registry/ubuntu-desktop-lab:latest
-LAB_SESSION_TIMEOUT=7200000
-MAX_CONCURRENT_LABS=3
-PUBLIC_NODE_IP=139.59.87.226
-```
-
-**Frontend (.env):**
-```env
-VITE_API_URL=/api
-```
-
-### 3. Build Docker Images
-
-**Ubuntu Desktop:**
-```bash
-cd docker/ubuntu-desktop
-docker build -t registry.digitalocean.com/cyberlab-registry/ubuntu-desktop-lab:latest .
-docker push registry.digitalocean.com/cyberlab-registry/ubuntu-desktop-lab:latest
-```
-
-**Backend:**
 ```bash
 cd backend
-docker build -t registry.digitalocean.com/cyberlab-registry/cyberlab-backend:latest .
-docker push registry.digitalocean.com/cyberlab-registry/cyberlab-backend:latest
+npm install
+cp .env.example .env
+# edit .env
+npm run dev
 ```
 
-**Frontend:**
+### Frontend (local)
+
 ```bash
 cd frontend
+npm install
+cp .env.example .env
+# edit VITE_API_URL in .env
+npm run dev
+```
+
+---
+
+## Troubleshooting (common checks)
+
+- Pods: `kubectl get pods -A`
+- Ingress services: `kubectl get ingress -A`
+- LoadBalancer IP: `kubectl get svc -n ingress-nginx`
+- Backend logs: `kubectl logs deployment/backend -n default`
+- ArgoCD apps: `kubectl get applications -n argocd`
+
+---
+
+## Contributing
+
+Contributions welcome. Open PRs against `main` or file issues for bugs and feature requests.
+
+---
+
+## License
+
+MIT
+
+- **Container Registry:** DigitalOcean Container Registry (DOCR)docker build -t registry.digitalocean.com/cyberlab-registry/cyberlab-backend:latest .
+
+docker push registry.digitalocean.com/cyberlab-registry/cyberlab-backend:latest
+
+### **CI/CD & GitOps**```
+
+- **CI/CD:** GitHub Actions
+
+- **GitOps:** ArgoCD v3.1.8**Frontend:**
+
+- **Version Control:** GitHub```bash
+
+- **Image Building:** Dockercd frontend
+
 npm run build
-docker build -t registry.digitalocean.com/cyberlab-registry/cyberlab-frontend:latest .
-docker push registry.digitalocean.com/cyberlab-registry/cyberlab-frontend:latest
-```
 
-### 4. Deploy to Kubernetes
+### **Monitoring**docker build -t registry.digitalocean.com/cyberlab-registry/cyberlab-frontend:latest .
 
-**Create Namespace:**
+- **Metrics:** Prometheus v2.48.0docker push registry.digitalocean.com/cyberlab-registry/cyberlab-frontend:latest
+
+- **Visualization:** Grafana 10.2.0```
+
+- **Node Metrics:** Node Exporter (DaemonSet)
+
+- **Cluster Metrics:** Kube State Metrics### 4. Deploy to Kubernetes
+
+
+
+### **CNCF Tools Used****Create Namespace:**
+
+- ✅ **Kubernetes** - Container orchestration```bash
+
+- ✅ **Prometheus** - Metrics and monitoringkubectl apply -f kubernetes/infrastructure/namespaces.yaml
+
+- ✅ **Helm** - Package management```
+
+- ✅ **CoreDNS** - DNS and service discovery
+
+- ✅ **containerd** - Container runtime**Create RBAC:**
+
 ```bash
-kubectl apply -f kubernetes/infrastructure/namespaces.yaml
+# CyberLab — On-Demand Online Lab Environment
+
+Browser-accessible Ubuntu desktop labs, containerized and orchestrated on DigitalOcean Kubernetes (DOKS). Each student gets an isolated Ubuntu desktop (XFCE) accessible through a browser via noVNC. The platform uses GitOps (ArgoCD) and CI/CD (GitHub Actions) and includes monitoring with Prometheus and Grafana.
+
+---
+
+## Table of Contents
+
+- [System overview](#system-overview)
+- [Architecture](#architecture)
+- [Tech stack](#tech-stack)
+- [Components](#components)
+- [Infrastructure](#infrastructure)
+- [CI/CD & GitOps](#cicd--gitops)
+- [Local development](#local-development)
+- [Generate architecture diagram](#generate-architecture-diagram)
+- [Troubleshooting](#troubleshooting)
+- [License](#license)
+
+---
+
+## System overview
+
+CyberLab provides on-demand, containerized Ubuntu desktop environments for students. Each lab session typically consists of Kubernetes resources (Pod, PVC, Service, Ingress) and is created and managed by the backend using the Kubernetes API.
+
+Key features:
+- Browser-based Ubuntu desktops via noVNC
+- Per-student persistent storage (PVCs)
+- JWT authentication and role-based access
+- GitOps with ArgoCD
+- CI builds + image pushes via GitHub Actions
+- Monitoring with Prometheus & Grafana
+
+---
+
+## Architecture
+
+High-level flow:
+1. User (student or admin) accesses the frontend in their browser.
+2. Traffic hits a DigitalOcean Load Balancer, then an NGINX Ingress Controller.
+3. Ingress routes requests to frontend and backend services.
+4. Backend persists state to MongoDB Atlas and talks to the Kubernetes API to create lab pods in the `student-labs` namespace.
+5. Lab pods expose noVNC/websockify; each session mounts a PVC backed by DigitalOcean Block Storage.
+6. Prometheus scrapes metrics; Grafana visualizes dashboards.
+
+---
+
+## Tech stack
+
+- Frontend: React (Vite), Tailwind CSS
+- Backend: Node.js (Express), Mongoose
+- Kubernetes: DigitalOcean Kubernetes (DOKS)
+- Ingress: NGINX Ingress Controller
+- Storage: DigitalOcean Block Storage (PVCs)
+- Registry: DigitalOcean Container Registry (DOCR)
+- CI: GitHub Actions
+- GitOps: ArgoCD
+- Monitoring: Prometheus, Grafana, Node Exporter, Kube State Metrics
+- DB: MongoDB Atlas
+
+---
+
+## Components
+
+### Frontend
+- Path: `frontend/`
+- Build: Vite bundle
+- Replicas: typically 2
+
+### Backend
+- Path: `backend/`
+- Responsibilities: authentication, lab lifecycle orchestration, Kubernetes API interactions
+- ServiceAccount: `lab-manager` — RBAC limited to `student-labs` for pod/service/ingress/pvc operations
+
+### Lab pods (Ubuntu desktop)
+- Base image: `docker/ubuntu-desktop/Dockerfile`
+- Services inside pod: x11vnc, websockify, noVNC, Xvfb, XFCE4
+- PVC mounted at `/home/student`
+- noVNC access path: `/lab/{sessionId}/websockify`
+
+### Database
+- Provider: MongoDB Atlas
+- Models: Student, LabTemplate, LabSession
+
+---
+
+## Infrastructure (example)
+
+- Cluster: DigitalOcean Kubernetes (example node type: `s-2vcpu-4gb`)
+- Example LoadBalancer IP: `152.42.156.112` (replace with your LB IP)
+- Namespaces: `default`, `student-labs`, `monitoring`, `argocd`, `ingress-nginx`
+
+Note: TLS and DNS setup depend on your domain and certificate provider. `.nip.io` is useful for demos but has limitations with rate-limited ACME issuers.
+
+---
+
+## CI/CD & GitOps
+
+- GitHub Actions workflows live in `.github/workflows/` (backend, frontend, ubuntu-desktop image builds).
+- Typical workflow steps: checkout, authenticate with DOCR, build image, tag & push, optionally trigger ArgoCD sync.
+- ArgoCD watches `kubernetes/` manifests and applies them; applications are configured with automated sync, prune and self-heal where appropriate.
+
+---
+
+## Local development
+
+Backend (dev):
+```
+cd backend
+npm install
+cp .env.example .env
+# edit .env (DB, JWT secret, DO settings)
+npm run dev
 ```
 
-**Create RBAC:**
-```bash
-kubectl apply -f kubernetes/infrastructure/rbac.yaml
+Frontend (dev):
 ```
-
-**Create Registry Secret:**
-```bash
-kubectl create secret docker-registry cyberlab-registry \
-  --docker-server=registry.digitalocean.com \
-  --docker-username=<your-email> \
-  --docker-password=<your-do-token> \
-  --namespace=student-labs
-```
-
-**Create Secrets:**
-```bash
-# MongoDB
-kubectl create secret generic mongo-secret \
-  --from-literal=connection-string='mongodb+srv://...' \
-  -n default
-
-# JWT
-kubectl create secret generic jwt-secret \
-  --from-literal=secret='your-secret-key' \
-  -n default
-```
-
-**Deploy Backend:**
-```bash
-kubectl apply -f kubernetes/backend/deployment.yaml
-```
-
-**Deploy Frontend:**
-```bash
-kubectl apply -f kubernetes/frontend/deployment.yaml
-```
-
-**Deploy Ingress:**
-```bash
-kubectl apply -f kubernetes/ingress/ingress.yaml
-```
-
-### 5. Configure Firewall (DigitalOcean)
-
-**Open NodePort Range:**
-1. Go to: https://cloud.digitalocean.com/networking/firewalls
-2. Select your Kubernetes cluster firewall
-3. Add Inbound Rule:
-   - Type: Custom
-   - Protocol: TCP
-   - Ports: `30000-32767`
-   - Sources: All IPv4
-
-Or via CLI:
-```bash
-doctl compute firewall add-rules <firewall-id> \
-  --inbound-rules "protocol:tcp,ports:30000-32767,address:0.0.0.0/0"
-```
-
-## 🔄 Complete Lab Workflow - Step by Step
-
-### **Step 1: Student Authentication**
-```
-Student clicks "Start Lab"
-    ↓
-Frontend sends POST /api/labs/start
-    ↓
-JWT token in Authorization header
-    ↓
-Backend validates token (middleware/auth.js)
-    ↓
-Student profile loaded from MongoDB
-```
-
-### **Step 2: Session Check**
-```
-Check for existing running session in MongoDB
-    ↓
-IF EXISTS: Return existing accessUrl immediately
-    ↓
-IF NOT EXISTS: Continue to create new lab
-```
-
-### **Step 3: Lab Provisioning**
-```
-Create LabSession record in MongoDB
-    ↓
-Generate unique pod name: lab-{studentId}-{timestamp}
-    ↓
-Call k8sService.deployLabPod()
-```
-
-### **Step 4: Kubernetes Deployment**
-```
-Build pod manifest with:
-    - Image: ubuntu-desktop-lab:latest
-    - Resources: 500m CPU, 1Gi RAM
-    - Labels: session={uniqueSessionId}
-    ↓
-Create pod in student-labs namespace
-    ↓
-Generate random NodePort (30000-32767)
-    ↓
-Create NodePort service with session label selector
-```
-
-### **Step 5: Network Routing & Isolation**
-```
-Service routes traffic to pod via label selector
-    ↓
-session={uniqueId} ensures isolation (critical!)
-    ↓
-Generate access URL: http://{publicIP}:{nodePort}/vnc.html?autoconnect=true
-    ↓
-Update LabSession in MongoDB with accessUrl and status='running'
-```
-
-### **Step 6: Student Access**
-```
-Frontend displays iframe with accessUrl
-    ↓
-Browser connects to NodePort
-    ↓
-Traffic routed to correct pod via service selector
-    ↓
-noVNC establishes WebSocket connection
-    ↓
-websockify proxies WebSocket ↔ VNC
-    ↓
-x11vnc streams XFCE desktop
-    ↓
-Student sees Ubuntu desktop and can interact!
-```
-
-### **Step 7: Stop Lab**
-```
-POST /api/labs/stop
-    ↓
-Delete Kubernetes Pod
-    ↓
-Delete NodePort Service
-    ↓
-Update LabSession status to 'stopped' in MongoDB
+cd frontend
+npm install
+cp .env.example .env
+# set VITE_API_URL
+npm run dev
 ```
 
 ---
 
-## 🚀 DETAILED FLOW: When Student Clicks "Start Lab"
+## Generate architecture diagram
 
-This section provides a comprehensive, step-by-step breakdown of what happens from the moment a student clicks "Start Lab" to when they see their Ubuntu desktop.
+An architecture-as-code diagram generator is included at `architecture-diagram.py` (uses the Python `diagrams` package).
 
-### **📊 Complete Request-Response Flow**
+Prerequisites:
+- Python (3.8+)
+- `pip install diagrams`
+- Graphviz installed and `dot` available on PATH (see `INSTALL_GRAPHVIZ.md` for Windows instructions).
 
+To generate the diagram (PNG/SVG):
 ```
-┌──────────────────────────────────────────────────────────────────────────┐
-│ STEP 1: Student Browser - User Action                                    │
-├──────────────────────────────────────────────────────────────────────────┤
-│ • Student clicks "Start Ubuntu Lab" button                               │
-│ • Frontend (React) sends HTTP POST request                               │
-│ • Request: POST /api/labs/start                                          │
-│ • Headers: Authorization: Bearer <JWT_TOKEN>                             │
-│ • Body: {} (no parameters needed for simple mode)                        │
-└────────────────────────────┬─────────────────────────────────────────────┘
-                             │
-                             ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│ STEP 2: NGINX Ingress Controller - Request Routing                       │
-├──────────────────────────────────────────────────────────────────────────┤
-│ • Ingress receives request at /api/labs/start                            │
-│ • Routes to backend service based on path prefix                         │
-│ • Rule: /api/* → backend-service:5000 (ClusterIP)                        │
-│ • Performs internal Kubernetes service discovery                         │
-└────────────────────────────┬─────────────────────────────────────────────┘
-                             │
-                             ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│ STEP 3: Backend - Authentication Middleware                              │
-├──────────────────────────────────────────────────────────────────────────┤
-│ File: backend/src/middleware/auth.js (protect middleware)                │
-│                                                                           │
-│ 1. Extract JWT from Authorization header                                 │
-│    const token = req.headers.authorization.split(' ')[1];                │
-│                                                                           │
-│ 2. Verify token signature                                                │
-│    const decoded = jwt.verify(token, process.env.JWT_SECRET);            │
-│                                                                           │
-│ 3. Extract student ID from payload                                       │
-│    const studentId = decoded.id;                                         │
-│                                                                           │
-│ 4. Query database for student                                            │
-│    const student = await Student.findById(studentId).select('-password');│
-│                                                                           │
-│ 5. Attach student to request object                                      │
-│    req.student = student;                                                │
-│                                                                           │
-│ ✅ If valid: Continue to controller                                      │
-│ ❌ If invalid/expired: Return 401 Unauthorized                           │
-└────────────────────────────┬─────────────────────────────────────────────┘
-                             │
-                             ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│ STEP 4: Lab Controller - Check Existing Session                          │
-├──────────────────────────────────────────────────────────────────────────┤
-│ File: backend/src/controllers/labController.js:21-33                     │
-│                                                                           │
-│ const existingSession = await LabSession.findOne({                       │
-│   student: req.student._id,                                              │
-│   status: 'running'                                                      │
-│ });                                                                      │
-│                                                                           │
-│ ❓ IF existing session found:                                            │
-│    → Return existing session immediately                                 │
-│    → Response: { podName, accessUrl, status: 'running', vncPort }        │
-│    → STOP HERE (don't create duplicate pod)                              │
-│                                                                           │
-│ ✅ IF NO existing session:                                               │
-│    → Continue to create new lab                                          │
-└────────────────────────────┬─────────────────────────────────────────────┘
-                             │
-                             ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│ STEP 5: Lab Controller - Create Configuration                            │
-├──────────────────────────────────────────────────────────────────────────┤
-│ File: backend/src/controllers/labController.js:35-47                     │
-│                                                                           │
-│ const defaultLabConfig = {                                               │
-│   name: 'Ubuntu Desktop Lab',                                            │
-│   image: 'registry.digitalocean.com/cyberlab-registry/                   │
-│           ubuntu-desktop-lab:latest',                                    │
-│   resources: {                                                           │
-│     cpu: '500m',      // 0.5 CPU cores                                   │
-│     memory: '1Gi'     // 1 Gigabyte RAM                                  │
-│   },                                                                     │
-│   duration: 120       // 2 hours auto-shutdown                           │
-│ };                                                                       │
-│                                                                           │
-│ const namespace = process.env.K8S_NAMESPACE || 'student-labs';           │
-└────────────────────────────┬─────────────────────────────────────────────┘
-                             │
-                             ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│ STEP 6: Lab Controller - Create Database Record                          │
-├──────────────────────────────────────────────────────────────────────────┤
-│ File: backend/src/controllers/labController.js:49-57                     │
-│                                                                           │
-│ const labSession = await LabSession.create({                             │
+python architecture-diagram.py
+```
+
+If rendering fails with a Graphviz error (ExecutableNotFound), install Graphviz and ensure `dot` is on PATH, then re-run the script.
+
+---
+
+## Troubleshooting
+
+- Check pods and resources:
+  - kubectl get pods -A
+  - kubectl get svc -n ingress-nginx
+  - kubectl logs deployment/backend -n default
+
+- Common issues:
+  - Graphviz not installed → diagram rendering fails (see `INSTALL_GRAPHVIZ.md`).
+  - Duplicate key error when creating Student records → ensure unique indexes and validate incoming payloads.
+  - Ingress/LoadBalancer issues → check cloud provider LB health and nginx ingress controller logs.
+
+---
+
+## Access (example URLs)
+
+- Frontend: http://<LB_IP>.nip.io
+- Backend API: http://<LB_IP>.nip.io/api
+- Lab sessions (noVNC): http://labs.<LB_IP>.nip.io/lab/{sessionId}/vnc.html
+- Grafana: http://monitoring.<LB_IP>.nip.io
+
+Replace <LB_IP> with your LoadBalancer IP.
+
+---
+
+## License
+
+MIT
+
+
 │   student: req.student._id,                   // MongoDB ObjectId        │
-│   labTemplate: null,                          // Simple mode (no template)│
+
+### RBAC (Role-Based Access Control)│   labTemplate: null,                          // Simple mode (no template)│
+
 │   podName: `lab-${studentId}-${Date.now()}`,  // Unique pod name         │
-│            // Example: lab-507f1f77bcf86cd799439011-1735324800           │
+
+**ServiceAccount:** `lab-manager`│            // Example: lab-507f1f77bcf86cd799439011-1735324800           │
+
 │   namespace: 'student-labs',                                             │
-│   status: 'pending',                          // Initial state            │
-│   autoShutdownTime: new Date(Date.now() + 120 * 60000)  // +2 hours      │
-│ });                                                                      │
-│                                                                           │
-│ 💾 Saved to MongoDB Atlas                                                │
+
+**Permissions (in student-labs namespace):**│   status: 'pending',                          // Initial state            │
+
+```yaml│   autoShutdownTime: new Date(Date.now() + 120 * 60000)  // +2 hours      │
+
+Resources: pods, services, persistentvolumeclaims, ingresses│ });                                                                      │
+
+Verbs: create, get, list, delete, patch│                                                                           │
+
+```│ 💾 Saved to MongoDB Atlas                                                │
+
 │ 📊 Session ID generated: 676c12345abcdef987654321                        │
-└────────────────────────────┬─────────────────────────────────────────────┘
+
+**Purpose:** Allow backend pods to create/delete lab resources dynamically└────────────────────────────┬─────────────────────────────────────────────┘
+
                              │
-                             ▼
+
+---                             ▼
+
 ┌──────────────────────────────────────────────────────────────────────────┐
-│ STEP 7: K8s Service - Initialize API Client                              │
+
+## 🔄 CI/CD Pipeline│ STEP 7: K8s Service - Initialize API Client                              │
+
 ├──────────────────────────────────────────────────────────────────────────┤
-│ File: backend/src/services/k8sService.js:1-13                            │
+
+### GitHub Actions Workflows│ File: backend/src/services/k8sService.js:1-13                            │
+
 │                                                                           │
-│ const kc = new k8s.KubeConfig();                                         │
+
+Located in `.github/workflows/`│ const kc = new k8s.KubeConfig();                                         │
+
 │ if (process.env.NODE_ENV === 'production') {                             │
-│   kc.loadFromCluster();  // Use ServiceAccount: lab-manager              │
+
+### 1. Backend Pipeline (`backend.yml`)│   kc.loadFromCluster();  // Use ServiceAccount: lab-manager              │
+
 │ } else {                                                                 │
-│   kc.loadFromDefault();  // Use local kubeconfig                         │
+
+**Trigger:** Push to `main` branch with changes in `backend/**` or `docker/backend/**`│   kc.loadFromDefault();  // Use local kubeconfig                         │
+
 │ }                                                                        │
-│                                                                           │
-│ const k8sApi = kc.makeApiClient(k8s.CoreV1Api);                          │
-│                                                                           │
-│ 🔐 RBAC Permissions (lab-manager ServiceAccount):                        │
+
+**Steps:**│                                                                           │
+
+```yaml│ const k8sApi = kc.makeApiClient(k8s.CoreV1Api);                          │
+
+1. Checkout Code│                                                                           │
+
+   - Uses: actions/checkout@v2│ 🔐 RBAC Permissions (lab-manager ServiceAccount):                        │
+
 │    • Can create/delete pods in student-labs namespace                    │
-│    • Can create/delete services in student-labs namespace                │
-│    • Can read nodes (to get public IP)                                   │
-│    • CANNOT access other namespaces                                      │
+
+2. Login to DigitalOcean Container Registry│    • Can create/delete services in student-labs namespace                │
+
+   - Uses: digitalocean/action-doctl@v2│    • Can read nodes (to get public IP)                                   │
+
+   - Authenticates with DIGITALOCEAN_ACCESS_TOKEN│    • CANNOT access other namespaces                                      │
+
 └────────────────────────────┬─────────────────────────────────────────────┘
-                             │
-                             ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│ STEP 8: K8s Service - Build Pod Manifest                                 │
+
+3. Build Docker Image                             │
+
+   - Context: ./backend                             ▼
+
+   - Dockerfile: ./docker/backend/Dockerfile┌──────────────────────────────────────────────────────────────────────────┐
+
+   - Image: registry.digitalocean.com/cyberlab-registry/cyberlab-backend:latest│ STEP 8: K8s Service - Build Pod Manifest                                 │
+
 ├──────────────────────────────────────────────────────────────────────────┤
-│ File: backend/src/services/k8sService.js:38-82                           │
-│                                                                           │
-│ const podManifest = {                                                    │
+
+4. Push to Registry│ File: backend/src/services/k8sService.js:38-82                           │
+
+   - Push image with :latest tag│                                                                           │
+
+   - Push image with :$GITHUB_SHA tag (version tracking)│ const podManifest = {                                                    │
+
 │   apiVersion: 'v1',                                                      │
-│   kind: 'Pod',                                                           │
-│   metadata: {                                                            │
-│     name: 'lab-507f1f77bcf86cd799439011-1735324800',                     │
+
+5. Trigger ArgoCD Sync (Optional)│   kind: 'Pod',                                                           │
+
+   - ArgoCD auto-sync enabled (happens automatically)│   metadata: {                                                            │
+
+```│     name: 'lab-507f1f77bcf86cd799439011-1735324800',                     │
+
 │     namespace: 'student-labs',                                           │
-│     labels: {                                                            │
-│       app: 'student-lab',                                                │
-│       student: '507f1f77bcf86cd799439011',                               │
+
+**Environment Variables:**│     labels: {                                                            │
+
+- `DIGITALOCEAN_ACCESS_TOKEN` (Secret)│       app: 'student-lab',                                                │
+
+- `REGISTRY_NAME=cyberlab-registry`│       student: '507f1f77bcf86cd799439011',                               │
+
 │       session: '676c12345abcdef987654321'   // ⚡ CRITICAL FOR ISOLATION │
-│     }                                                                    │
+
+### 2. Frontend Pipeline (`frontend.yml`)│     }                                                                    │
+
 │   },                                                                     │
-│   spec: {                                                                │
+
+**Trigger:** Push to `main` branch with changes in `frontend/**` or `docker/frontend/**`│   spec: {                                                                │
+
 │     imagePullSecrets: [{ name: 'cyberlab-registry' }],                   │
-│     containers: [{                                                       │
-│       name: 'ubuntu-desktop',                                            │
-│       image: 'registry.digitalocean.com/.../ubuntu-desktop-lab:latest',  │
+
+**Steps:**│     containers: [{                                                       │
+
+```yaml│       name: 'ubuntu-desktop',                                            │
+
+1. Checkout Code│       image: 'registry.digitalocean.com/.../ubuntu-desktop-lab:latest',  │
+
 │       ports: [                                                           │
-│         { containerPort: 5901, name: 'vnc' },     // x11vnc               │
+
+2. Login to DigitalOcean Container Registry│         { containerPort: 5901, name: 'vnc' },     // x11vnc               │
+
 │         { containerPort: 6080, name: 'novnc' }    // noVNC web interface │
-│       ],                                                                 │
-│       resources: {                                                       │
-│         requests: { memory: '1Gi', cpu: '500m' },                        │
-│         limits: { memory: '1Gi', cpu: '500m' }                           │
-│       },                                                                 │
+
+3. Build Docker Image│       ],                                                                 │
+
+   - Context: ./frontend│       resources: {                                                       │
+
+   - Dockerfile: ./docker/frontend/Dockerfile│         requests: { memory: '1Gi', cpu: '500m' },                        │
+
+   - Build Args: VITE_API_URL│         limits: { memory: '1Gi', cpu: '500m' }                           │
+
+   - Image: registry.digitalocean.com/cyberlab-registry/cyberlab-frontend:latest│       },                                                                 │
+
 │       env: [                                                             │
-│         { name: 'VNC_PASSWORD', value: 'student123' },                   │
-│         { name: 'STUDENT_ID', value: '507f1f77bcf86cd799439011' }        │
-│       ]                                                                  │
+
+4. Push to Registry│         { name: 'VNC_PASSWORD', value: 'student123' },                   │
+
+   - Tag: latest, $GITHUB_SHA│         { name: 'STUDENT_ID', value: '507f1f77bcf86cd799439011' }        │
+
+```│       ]                                                                  │
+
 │     }],                                                                  │
-│     restartPolicy: 'Never'  // Don't auto-restart on failure             │
+
+### 3. Ubuntu Desktop Pipeline (`ubuntu-desktop.yml`)│     restartPolicy: 'Never'  // Don't auto-restart on failure             │
+
 │   }                                                                      │
-│ };                                                                       │
+
+**Trigger:** Push to `main` branch with changes in `docker/ubuntu-desktop/**`│ };                                                                       │
+
 └────────────────────────────┬─────────────────────────────────────────────┘
-                             │
-                             ▼
-┌──────────────────────────────────────────────────────────────────────────┐
+
+**Steps:**                             │
+
+```yaml                             ▼
+
+1. Checkout Code┌──────────────────────────────────────────────────────────────────────────┐
+
 │ STEP 9: K8s Service - Create Pod in Cluster                              │
-├──────────────────────────────────────────────────────────────────────────┤
+
+2. Login to DigitalOcean Container Registry├──────────────────────────────────────────────────────────────────────────┤
+
 │ File: backend/src/services/k8sService.js:87-91                           │
-│                                                                           │
-│ const createPodResponse = await k8sApi.createNamespacedPod({             │
-│   namespace: 'student-labs',                                             │
+
+3. Build Docker Image│                                                                           │
+
+   - Context: ./docker/ubuntu-desktop│ const createPodResponse = await k8sApi.createNamespacedPod({             │
+
+   - Image: registry.digitalocean.com/cyberlab-registry/ubuntu-desktop:latest│   namespace: 'student-labs',                                             │
+
 │   body: podManifest                                                      │
-│ });                                                                      │
+
+4. Push to Registry│ });                                                                      │
+
+   - Tag: latest, $GITHUB_SHA│                                                                           │
+
+```│ ✅ Pod created successfully!                                             │
+
 │                                                                           │
-│ ✅ Pod created successfully!                                             │
-│                                                                           │
-│ 🔄 Kubernetes Scheduler Actions:                                         │
+
+**Build Time:** ~10-15 minutes (large image with desktop environment)│ 🔄 Kubernetes Scheduler Actions:                                         │
+
 │    1. Assigns pod to available worker node                               │
-│    2. Node pulls image from registry (if not cached)                     │
+
+### Docker Image Pull Policy│    2. Node pulls image from registry (if not cached)                     │
+
 │    3. Creates container from image                                       │
-│    4. Starts container processes (Xvfb, x11vnc, noVNC, XFCE)             │
-│    5. Pod status: Pending → ContainerCreating → Running (~30 seconds)    │
-└────────────────────────────┬─────────────────────────────────────────────┘
-                             │
+
+All deployments use:│    4. Starts container processes (Xvfb, x11vnc, noVNC, XFCE)             │
+
+```yaml│    5. Pod status: Pending → ContainerCreating → Running (~30 seconds)    │
+
+imagePullPolicy: Always└────────────────────────────┬─────────────────────────────────────────────┘
+
+```                             │
+
                              ▼
-┌──────────────────────────────────────────────────────────────────────────┐
+
+This ensures pods always pull the latest image from the registry on restart.┌──────────────────────────────────────────────────────────────────────────┐
+
 │ STEP 10: K8s Service - Generate Random NodePort                          │
-├──────────────────────────────────────────────────────────────────────────┤
+
+---├──────────────────────────────────────────────────────────────────────────┤
+
 │ File: backend/src/services/k8sService.js:93-94                           │
-│                                                                           │
+
+## 🚀 GitOps Workflow│                                                                           │
+
 │ const nodePort = Math.floor(Math.random() * (32767 - 30000) + 30000);    │
-│ // Result example: 31245                                                 │
+
+### ArgoCD Setup│ // Result example: 31245                                                 │
+
 │                                                                           │
-│ 💡 Why random ports?                                                     │
+
+**Version:** v3.1.8│ 💡 Why random ports?                                                     │
+
 │    • Kubernetes NodePort range: 30000-32767 (2,768 available ports)      │
-│    • Random allocation prevents conflicts                                │
-│    • Each student gets unique external access port                       │
-│    • If port taken, Kubernetes API returns error → retry with new random │
-└────────────────────────────┬─────────────────────────────────────────────┘
-                             │
+
+**Installation:**│    • Random allocation prevents conflicts                                │
+
+```bash│    • Each student gets unique external access port                       │
+
+kubectl create namespace argocd│    • If port taken, Kubernetes API returns error → retry with new random │
+
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml└────────────────────────────┬─────────────────────────────────────────────┘
+
+```                             │
+
                              ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│ STEP 11: K8s Service - Create NodePort Service                           │
-├──────────────────────────────────────────────────────────────────────────┤
-│ File: backend/src/services/k8sService.js:97-126                          │
+
+**Access:**┌──────────────────────────────────────────────────────────────────────────┐
+
+- URL: `http://argocd.152-42-156-112.nip.io`│ STEP 11: K8s Service - Create NodePort Service                           │
+
+- Default User: `admin`├──────────────────────────────────────────────────────────────────────────┤
+
+- Password: Retrieved with `kubectl -n argocd get secret argocd-initial-admin-secret`│ File: backend/src/services/k8sService.js:97-126                          │
+
 │                                                                           │
-│ const serviceManifest = {                                                │
+
+### ArgoCD Applications│ const serviceManifest = {                                                │
+
 │   apiVersion: 'v1',                                                      │
-│   kind: 'Service',                                                       │
-│   metadata: {                                                            │
-│     name: 'svc-lab-507f1f77bcf86cd799439011-1735324800',                 │
-│     namespace: 'student-labs'                                            │
-│   },                                                                     │
-│   spec: {                                                                │
-│     type: 'NodePort',                                                    │
-│     selector: {                                                          │
-│       app: 'student-lab',                                                │
-│       session: '676c12345abcdef987654321'  // ⚡ ISOLATION MECHANISM     │
-│     },                                                                   │
-│     ports: [{                                                            │
-│       port: 6080,           // Service internal port                     │
-│       targetPort: 6080,     // Container port (noVNC listens here)       │
-│       nodePort: 31245,      // External port on ALL cluster nodes        │
-│       protocol: 'TCP',                                                   │
-│       name: 'novnc'                                                      │
-│     }]                                                                   │
-│   }                                                                      │
-│ };                                                                       │
-│                                                                           │
+
+**1. Frontend Application**│   kind: 'Service',                                                       │
+
+```yaml│   metadata: {                                                            │
+
+apiVersion: argoproj.io/v1alpha1│     name: 'svc-lab-507f1f77bcf86cd799439011-1735324800',                 │
+
+kind: Application│     namespace: 'student-labs'                                            │
+
+metadata:│   },                                                                     │
+
+  name: cyberlab-frontend│   spec: {                                                                │
+
+  namespace: argocd│     type: 'NodePort',                                                    │
+
+spec:│     selector: {                                                          │
+
+  project: default│       app: 'student-lab',                                                │
+
+  source:│       session: '676c12345abcdef987654321'  // ⚡ ISOLATION MECHANISM     │
+
+    repoURL: https://github.com/0019-KDU/online-lab-env│     },                                                                   │
+
+    targetRevision: main│     ports: [{                                                            │
+
+    path: kubernetes/frontend│       port: 6080,           // Service internal port                     │
+
+  destination:│       targetPort: 6080,     // Container port (noVNC listens here)       │
+
+    server: https://kubernetes.default.svc│       nodePort: 31245,      // External port on ALL cluster nodes        │
+
+    namespace: default│       protocol: 'TCP',                                                   │
+
+  syncPolicy:│       name: 'novnc'                                                      │
+
+    automated:│     }]                                                                   │
+
+      prune: true│   }                                                                      │
+
+      selfHeal: true│ };                                                                       │
+
+```│                                                                           │
+
 │ await k8sApi.createNamespacedService({                                   │
-│   namespace: 'student-labs',                                             │
-│   body: serviceManifest                                                  │
-│ });                                                                      │
-│                                                                           │
-│ ✅ Service created successfully!                                         │
-│                                                                           │
-│ 🔐 HOW ISOLATION WORKS:                                                  │
-│    The service selector ONLY matches pods with:                          │
-│    • app: 'student-lab' AND                                              │
-│    • session: '676c12345abcdef987654321' (unique to this student!)       │
-│                                                                           │
-│    Even if 100 students have running labs, traffic to NodePort 31245     │
-│    routes ONLY to the pod with matching session label.                   │
-└────────────────────────────┬─────────────────────────────────────────────┘
-                             │
-                             ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│ STEP 12: K8s Service - Generate Access URL                               │
-├──────────────────────────────────────────────────────────────────────────┤
-│ File: backend/src/services/k8sService.js:133-143                         │
-│                                                                           │
+
+**2. Backend Application**│   namespace: 'student-labs',                                             │
+
+```yaml│   body: serviceManifest                                                  │
+
+apiVersion: argoproj.io/v1alpha1│ });                                                                      │
+
+kind: Application│                                                                           │
+
+metadata:│ ✅ Service created successfully!                                         │
+
+  name: cyberlab-backend│                                                                           │
+
+  namespace: argocd│ 🔐 HOW ISOLATION WORKS:                                                  │
+
+spec:│    The service selector ONLY matches pods with:                          │
+
+  project: default│    • app: 'student-lab' AND                                              │
+
+  source:│    • session: '676c12345abcdef987654321' (unique to this student!)       │
+
+    repoURL: https://github.com/0019-KDU/online-lab-env│                                                                           │
+
+    targetRevision: main│    Even if 100 students have running labs, traffic to NodePort 31245     │
+
+    path: kubernetes/backend│    routes ONLY to the pod with matching session label.                   │
+
+  destination:└────────────────────────────┬─────────────────────────────────────────────┘
+
+    server: https://kubernetes.default.svc                             │
+
+    namespace: default                             ▼
+
+  syncPolicy:┌──────────────────────────────────────────────────────────────────────────┐
+
+    automated:│ STEP 12: K8s Service - Generate Access URL                               │
+
+      prune: true├──────────────────────────────────────────────────────────────────────────┤
+
+      selfHeal: true│ File: backend/src/services/k8sService.js:133-143                         │
+
+```│                                                                           │
+
 │ const publicIP = process.env.PUBLIC_NODE_IP || '139.59.87.226';          │
-│ const accessUrl = `http://${publicIP}:${nodePort}/vnc.html?autoconnect=true`;│
+
+**3. Infrastructure Application**│ const accessUrl = `http://${publicIP}:${nodePort}/vnc.html?autoconnect=true`;│
+
+```yaml│                                                                           │
+
+apiVersion: argoproj.io/v1alpha1│ Final URL: http://139.59.87.226:31245/vnc.html?autoconnect=true          │
+
+kind: Application│                                                                           │
+
+metadata:│ return {                                                                 │
+
+  name: cyberlab-infrastructure│   accessUrl: 'http://139.59.87.226:31245/vnc.html?autoconnect=true',     │
+
+  namespace: argocd│   vncPort: 31245,                                                        │
+
+spec:│   publicIP: '139.59.87.226'                                              │
+
+  project: default│ };                                                                       │
+
+  source:└────────────────────────────┬─────────────────────────────────────────────┘
+
+    repoURL: https://github.com/0019-KDU/online-lab-env                             │
+
+    targetRevision: main                             ▼
+
+    path: kubernetes/infrastructure┌──────────────────────────────────────────────────────────────────────────┐
+
+  destination:│ STEP 13: Lab Controller - Update Database                                │
+
+    server: https://kubernetes.default.svc├──────────────────────────────────────────────────────────────────────────┤
+
+    namespace: default│ File: backend/src/controllers/labController.js:64-67                     │
+
+  syncPolicy:│                                                                           │
+
+    automated:│ labSession.status = 'running';       // Update from 'pending'            │
+
+      prune: true│ labSession.accessUrl = deploymentResult.accessUrl;                       │
+
+      selfHeal: true│ labSession.vncPort = deploymentResult.vncPort;                           │
+
+```│ await labSession.save();             // Persist to MongoDB               │
+
 │                                                                           │
-│ Final URL: http://139.59.87.226:31245/vnc.html?autoconnect=true          │
+
+**4. Ingress Application**│ 💾 Updated record in MongoDB:                                            │
+
+```yaml│ {                                                                        │
+
+apiVersion: argoproj.io/v1alpha1│   _id: "676c12345abcdef987654321",                                       │
+
+kind: Application│   student: "507f1f77bcf86cd799439011",                                   │
+
+metadata:│   podName: "lab-507f1f77bcf86cd799439011-1735324800",                    │
+
+  name: ingress-nginx│   namespace: "student-labs",                                             │
+
+  namespace: argocd│   status: "running",                                                     │
+
+spec:│   accessUrl: "http://139.59.87.226:31245/vnc.html?autoconnect=true",     │
+
+  project: default│   vncPort: 31245,                                                        │
+
+  source:│   startTime: "2024-12-27T10:00:00.000Z",                                 │
+
+    repoURL: https://github.com/0019-KDU/online-lab-env│   autoShutdownTime: "2024-12-27T12:00:00.000Z"                           │
+
+    targetRevision: main│ }                                                                        │
+
+    path: kubernetes/ingress└────────────────────────────┬─────────────────────────────────────────────┘
+
+  destination:                             │
+
+    server: https://kubernetes.default.svc                             ▼
+
+    namespace: ingress-nginx┌──────────────────────────────────────────────────────────────────────────┐
+
+  syncPolicy:│ STEP 14: Lab Controller - Send Response to Frontend                      │
+
+    automated:├──────────────────────────────────────────────────────────────────────────┤
+
+      prune: true│ File: backend/src/controllers/labController.js:69                        │
+
+      selfHeal: true│                                                                           │
+
+```│ res.status(201).json(labSession);                                        │
+
 │                                                                           │
-│ return {                                                                 │
-│   accessUrl: 'http://139.59.87.226:31245/vnc.html?autoconnect=true',     │
-│   vncPort: 31245,                                                        │
-│   publicIP: '139.59.87.226'                                              │
-│ };                                                                       │
-└────────────────────────────┬─────────────────────────────────────────────┘
-                             │
-                             ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│ STEP 13: Lab Controller - Update Database                                │
-├──────────────────────────────────────────────────────────────────────────┤
-│ File: backend/src/controllers/labController.js:64-67                     │
-│                                                                           │
-│ labSession.status = 'running';       // Update from 'pending'            │
-│ labSession.accessUrl = deploymentResult.accessUrl;                       │
-│ labSession.vncPort = deploymentResult.vncPort;                           │
-│ await labSession.save();             // Persist to MongoDB               │
-│                                                                           │
-│ 💾 Updated record in MongoDB:                                            │
-│ {                                                                        │
-│   _id: "676c12345abcdef987654321",                                       │
-│   student: "507f1f77bcf86cd799439011",                                   │
-│   podName: "lab-507f1f77bcf86cd799439011-1735324800",                    │
-│   namespace: "student-labs",                                             │
-│   status: "running",                                                     │
-│   accessUrl: "http://139.59.87.226:31245/vnc.html?autoconnect=true",     │
-│   vncPort: 31245,                                                        │
-│   startTime: "2024-12-27T10:00:00.000Z",                                 │
-│   autoShutdownTime: "2024-12-27T12:00:00.000Z"                           │
-│ }                                                                        │
-└────────────────────────────┬─────────────────────────────────────────────┘
-                             │
-                             ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│ STEP 14: Lab Controller - Send Response to Frontend                      │
-├──────────────────────────────────────────────────────────────────────────┤
-│ File: backend/src/controllers/labController.js:69                        │
-│                                                                           │
-│ res.status(201).json(labSession);                                        │
-│                                                                           │
-│ HTTP Response:                                                           │
+
+### GitOps Flow│ HTTP Response:                                                           │
+
 │ Status: 201 Created                                                      │
-│ Content-Type: application/json                                           │
-│ Body:                                                                    │
-│ {                                                                        │
-│   "_id": "676c12345abcdef987654321",                                     │
-│   "student": "507f1f77bcf86cd799439011",                                 │
-│   "podName": "lab-507f1f77bcf86cd799439011-1735324800",                  │
-│   "namespace": "student-labs",                                           │
-│   "status": "running",                                                   │
-│   "accessUrl": "http://139.59.87.226:31245/vnc.html?autoconnect=true",   │
-│   "vncPort": 31245,                                                      │
-│   "startTime": "2024-12-27T10:00:00.000Z",                               │
-│   "autoShutdownTime": "2024-12-27T12:00:00.000Z",                        │
-│   "createdAt": "2024-12-27T10:00:00.000Z",                               │
-│   "updatedAt": "2024-12-27T10:00:05.000Z"                                │
-│ }                                                                        │
-└────────────────────────────┬─────────────────────────────────────────────┘
-                             │
+
+```│ Content-Type: application/json                                           │
+
+Developer Push│ Body:                                                                    │
+
+      ││ {                                                                        │
+
+      ▼│   "_id": "676c12345abcdef987654321",                                     │
+
+┌──────────────┐│   "student": "507f1f77bcf86cd799439011",                                 │
+
+│    GitHub    ││   "podName": "lab-507f1f77bcf86cd799439011-1735324800",                  │
+
+│  Repository  ││   "namespace": "student-labs",                                           │
+
+└──────┬───────┘│   "status": "running",                                                   │
+
+       ││   "accessUrl": "http://139.59.87.226:31245/vnc.html?autoconnect=true",   │
+
+       │ Git Push│   "vncPort": 31245,                                                      │
+
+       ▼│   "startTime": "2024-12-27T10:00:00.000Z",                               │
+
+┌──────────────────┐│   "autoShutdownTime": "2024-12-27T12:00:00.000Z",                        │
+
+│ GitHub Actions   ││   "createdAt": "2024-12-27T10:00:00.000Z",                               │
+
+│ (CI Pipeline)    ││   "updatedAt": "2024-12-27T10:00:05.000Z"                                │
+
+└──────┬───────────┘│ }                                                                        │
+
+       │└────────────────────────────┬─────────────────────────────────────────────┘
+
+       │ Build & Push                             │
+
+       ▼                             ▼
+
+┌──────────────────┐┌──────────────────────────────────────────────────────────────────────────┐
+
+│   DOCR Registry  ││ STEP 15: Frontend - Receive Response & Update UI                         │
+
+│  (Docker Images) │├──────────────────────────────────────────────────────────────────────────┤
+
+└──────────────────┘│ File: frontend/src/components/labs/ActiveLabSession.jsx                  │
+
+       ││                                                                           │
+
+       │ Pull Image│ React component receives response and updates state:                     │
+
+       ▼│                                                                           │
+
+┌──────────────────┐         ┌──────────────┐│ const [session, setSession] = useState(null);                            │
+
+│     ArgoCD       │◄────────┤   GitHub     ││ setSession(response.data);  // Update with lab session data              │
+
+│  (GitOps Sync)   │  Watch  │  (Manifests) ││                                                                           │
+
+└──────┬───────────┘         └──────────────┘│ State now contains:                                                      │
+
+       ││ • session.accessUrl = "http://139.59.87.226:31245/vnc.html?..."          │
+
+       │ Apply Manifests│ • session.status = "running"                                             │
+
+       ▼│ • session.podName = "lab-507f1f77bcf86cd799439011-1735324800"            │
+
+┌──────────────────┐│ • session.vncPort = 31245                                                │
+
+│    Kubernetes    ││                                                                           │
+
+│     Cluster      ││ UI re-renders to show active lab session                                 │
+
+└──────────────────┘└────────────────────────────┬─────────────────────────────────────────────┘
+
+```                             │
+
                              ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│ STEP 15: Frontend - Receive Response & Update UI                         │
-├──────────────────────────────────────────────────────────────────────────┤
-│ File: frontend/src/components/labs/ActiveLabSession.jsx                  │
-│                                                                           │
-│ React component receives response and updates state:                     │
-│                                                                           │
-│ const [session, setSession] = useState(null);                            │
-│ setSession(response.data);  // Update with lab session data              │
-│                                                                           │
-│ State now contains:                                                      │
-│ • session.accessUrl = "http://139.59.87.226:31245/vnc.html?..."          │
-│ • session.status = "running"                                             │
-│ • session.podName = "lab-507f1f77bcf86cd799439011-1735324800"            │
-│ • session.vncPort = 31245                                                │
-│                                                                           │
-│ UI re-renders to show active lab session                                 │
-└────────────────────────────┬─────────────────────────────────────────────┘
-                             │
-                             ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│ STEP 16: Frontend - Embed noVNC in iframe                                │
-├──────────────────────────────────────────────────────────────────────────┤
-│ <iframe                                                                  │
+
+**Sync Policy:**┌──────────────────────────────────────────────────────────────────────────┐
+
+- **Auto-Sync:** Enabled (changes applied within 3 minutes)│ STEP 16: Frontend - Embed noVNC in iframe                                │
+
+- **Prune:** Enabled (removes resources deleted from Git)├──────────────────────────────────────────────────────────────────────────┤
+
+- **Self-Heal:** Enabled (reverts manual cluster changes)│ <iframe                                                                  │
+
 │   src={session.accessUrl}                                                │
-│   width="100%"                                                           │
-│   height="600px"                                                         │
-│   frameBorder="0"                                                        │
-│   title="Lab Desktop"                                                    │
-│ />                                                                       │
-│                                                                           │
+
+**Benefits:**│   width="100%"                                                           │
+
+- ✅ Single source of truth (Git repository)│   height="600px"                                                         │
+
+- ✅ Automatic deployment on Git commit│   frameBorder="0"                                                        │
+
+- ✅ Rollback capability via Git revert│   title="Lab Desktop"                                                    │
+
+- ✅ Audit trail of all changes│ />                                                                       │
+
+- ✅ Declarative infrastructure│                                                                           │
+
 │ Browser HTML:                                                            │
-│ <iframe src="http://139.59.87.226:31245/vnc.html?autoconnect=true" />    │
+
+---│ <iframe src="http://139.59.87.226:31245/vnc.html?autoconnect=true" />    │
+
 │                                                                           │
-│ 🌐 Browser initiates HTTP request to NodePort                            │
+
+## 📊 Monitoring│ 🌐 Browser initiates HTTP request to NodePort                            │
+
 └────────────────────────────┬─────────────────────────────────────────────┘
-                             │
+
+### Prometheus Setup                             │
+
                              ▼
-┌──────────────────────────────────────────────────────────────────────────┐
+
+**Purpose:** Collect metrics from Kubernetes cluster and applications┌──────────────────────────────────────────────────────────────────────────┐
+
 │ STEP 17: Network Path - Browser to Container                             │
-├──────────────────────────────────────────────────────────────────────────┤
-│                                                                           │
-│ Student Browser                                                          │
-│      │                                                                   │
-│      │ HTTP GET http://139.59.87.226:31245/vnc.html                      │
+
+**Deployment:**├──────────────────────────────────────────────────────────────────────────┤
+
+- **Namespace:** monitoring│                                                                           │
+
+- **Port:** 9090│ Student Browser                                                          │
+
+- **Retention:** 15 days│      │                                                                   │
+
+- **Storage:** 10Gi PVC│      │ HTTP GET http://139.59.87.226:31245/vnc.html                      │
+
 │      ▼                                                                   │
-│ Internet → DigitalOcean Firewall (allows ports 30000-32767)              │
+
+**Scrape Targets:**│ Internet → DigitalOcean Firewall (allows ports 30000-32767)              │
+
+```yaml│      │                                                                   │
+
+- Kubernetes API Server (https://kubernetes.default.svc:443)│      ▼                                                                   │
+
+- Kubernetes Nodes (kubelet metrics)│ Cluster Node (IP: 139.59.87.226) - Port 31245                            │
+
+- Kubernetes Pods (cAdvisor container metrics)│      │                                                                   │
+
+- Node Exporter (host metrics from all 5 nodes)│      │ kube-proxy routes to service                                     │
+
+- Kube State Metrics (Kubernetes object state)│      ▼                                                                   │
+
+```│ Service: svc-lab-507f1f77bcf86cd799439011-1735324800                     │
+
 │      │                                                                   │
-│      ▼                                                                   │
-│ Cluster Node (IP: 139.59.87.226) - Port 31245                            │
-│      │                                                                   │
-│      │ kube-proxy routes to service                                     │
-│      ▼                                                                   │
-│ Service: svc-lab-507f1f77bcf86cd799439011-1735324800                     │
-│      │                                                                   │
-│      │ Selector matches: session=676c12345abcdef987654321                │
-│      ▼                                                                   │
-│ Pod: lab-507f1f77bcf86cd799439011-1735324800                             │
-│      │                                                                   │
-│      │ Container port 6080 (noVNC web server)                            │
-│      ▼                                                                   │
-│ noVNC Web Server                                                         │
-│      │                                                                   │
+
+**Metrics Collected:**│      │ Selector matches: session=676c12345abcdef987654321                │
+
+- CPU usage per pod/node│      ▼                                                                   │
+
+- Memory usage per pod/node│ Pod: lab-507f1f77bcf86cd799439011-1735324800                             │
+
+- Network I/O│      │                                                                   │
+
+- Disk I/O│      │ Container port 6080 (noVNC web server)                            │
+
+- Pod status and restarts│      ▼                                                                   │
+
+- Ingress requests│ noVNC Web Server                                                         │
+
+- API server latency│      │                                                                   │
+
 │      │ Serves vnc.html + JavaScript VNC client                           │
-│      │ Client auto-connects (autoconnect=true query param)               │
+
+**Configuration:**│      │ Client auto-connects (autoconnect=true query param)               │
+
+```yaml│      ▼                                                                   │
+
+global:│ websockify (WebSocket ↔ TCP proxy)                                       │
+
+  scrape_interval: 30s│      │                                                                   │
+
+  evaluation_interval: 30s│      │ Converts WebSocket protocol → VNC protocol                        │
+
 │      ▼                                                                   │
-│ websockify (WebSocket ↔ TCP proxy)                                       │
-│      │                                                                   │
-│      │ Converts WebSocket protocol → VNC protocol                        │
-│      ▼                                                                   │
-│ x11vnc (VNC server on port 5901)                                         │
-│      │                                                                   │
-│      │ Streams X11 display over VNC                                      │
-│      ▼                                                                   │
-│ Xvfb (Virtual X11 Display Server)                                        │
-│      │                                                                   │
-│      │ Renders graphical output                                          │
-│      ▼                                                                   │
-│ XFCE4 Desktop Environment                                                │
-│      • Window manager, panels, menus                                     │
-│      • Firefox browser                                                   │
-│      • VSCode editor                                                     │
-│      • Terminal emulator                                                 │
-│      • File manager                                                      │
-│                                                                           │
-│ 🖱️ User input (mouse/keyboard) flows back up this chain                  │
-└──────────────────────────────────────────────────────────────────────────┘
-                             │
-                             ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│ STEP 18: Student Sees Desktop! 🎉                                        │
-├──────────────────────────────────────────────────────────────────────────┤
-│                                                                           │
-│  ┌────────────────────────────────────────────────────────────┐         │
-│  │  [Browser Window - Student View]                           │         │
-│  │  ┌──────────────────────────────────────────────────────┐  │         │
-│  │  │ 🖥️  Ubuntu 22.04 Desktop (XFCE)                      │  │         │
+
+scrape_configs:│ x11vnc (VNC server on port 5901)                                         │
+
+  - job_name: 'kubernetes-apiservers'│      │                                                                   │
+
+    kubernetes_sd_configs:│      │ Streams X11 display over VNC                                      │
+
+      - role: endpoints│      ▼                                                                   │
+
+    scheme: https│ Xvfb (Virtual X11 Display Server)                                        │
+
+    tls_config:│      │                                                                   │
+
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt│      │ Renders graphical output                                          │
+
+      insecure_skip_verify: true│      ▼                                                                   │
+
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token│ XFCE4 Desktop Environment                                                │
+
+    │      • Window manager, panels, menus                                     │
+
+  - job_name: 'kubernetes-nodes'│      • Firefox browser                                                   │
+
+    kubernetes_sd_configs:│      • VSCode editor                                                     │
+
+      - role: node│      • Terminal emulator                                                 │
+
+    │      • File manager                                                      │
+
+  - job_name: 'kubernetes-pods'│                                                                           │
+
+    kubernetes_sd_configs:│ 🖱️ User input (mouse/keyboard) flows back up this chain                  │
+
+      - role: pod└──────────────────────────────────────────────────────────────────────────┘
+
+                                 │
+
+  - job_name: 'node-exporter'                             ▼
+
+    kubernetes_sd_configs:┌──────────────────────────────────────────────────────────────────────────┐
+
+      - role: node│ STEP 18: Student Sees Desktop! 🎉                                        │
+
+    relabel_configs:├──────────────────────────────────────────────────────────────────────────┤
+
+      - source_labels: [__address__]│                                                                           │
+
+        target_label: __address__│  ┌────────────────────────────────────────────────────────────┐         │
+
+        replacement: $1:9100│  │  [Browser Window - Student View]                           │         │
+
+    │  │  ┌──────────────────────────────────────────────────────┐  │         │
+
+  - job_name: 'kube-state-metrics'│  │  │ 🖥️  Ubuntu 22.04 Desktop (XFCE)                      │  │         │
+
+    static_configs:│  │  │                                                      │  │         │
+
+      - targets: ['kube-state-metrics:8080']│  │  │  Applications  Terminal  Firefox  VSCode             │  │         │
+
+```│  │  │  ─────────────────────────────────────────────────   │  │         │
+
 │  │  │                                                      │  │         │
-│  │  │  Applications  Terminal  Firefox  VSCode             │  │         │
-│  │  │  ─────────────────────────────────────────────────   │  │         │
+
+### Grafana Setup│  │  │  student@lab-507f:~$ _                               │  │         │
+
 │  │  │                                                      │  │         │
-│  │  │  student@lab-507f:~$ _                               │  │         │
+
+**Purpose:** Visualize metrics with dashboards│  │  │  [Desktop icons, taskbar, file manager]              │  │         │
+
 │  │  │                                                      │  │         │
-│  │  │  [Desktop icons, taskbar, file manager]              │  │         │
-│  │  │                                                      │  │         │
-│  │  └──────────────────────────────────────────────────────┘  │         │
-│  └────────────────────────────────────────────────────────────┘         │
-│                                                                           │
-│ ✅ Student can now:                                                      │
-│    • Open terminal and run commands (python, npm, git, etc.)             │
+
+**Deployment:**│  │  └──────────────────────────────────────────────────────┘  │         │
+
+- **Namespace:** monitoring│  └────────────────────────────────────────────────────────────┘         │
+
+- **Port:** 3000│                                                                           │
+
+- **Credentials:** admin / admin123│ ✅ Student can now:                                                      │
+
+- **Storage:** 2Gi PVC│    • Open terminal and run commands (python, npm, git, etc.)             │
+
 │    • Install packages with sudo (sudo apt install ...)                   │
-│    • Write and edit code in VSCode                                       │
-│    • Browse internet with Firefox                                        │
-│    • Upload/download files                                               │
-│    • Full interactive Linux desktop experience!                          │
-│                                                                           │
-│ ⏱️ Total time elapsed: ~30-45 seconds from button click                  │
-└──────────────────────────────────────────────────────────────────────────┘
+
+**Data Source:**│    • Write and edit code in VSCode                                       │
+
+```yaml│    • Browse internet with Firefox                                        │
+
+name: Prometheus│    • Upload/download files                                               │
+
+type: prometheus│    • Full interactive Linux desktop experience!                          │
+
+url: http://prometheus:9090│                                                                           │
+
+access: proxy│ ⏱️ Total time elapsed: ~30-45 seconds from button click                  │
+
+isDefault: true└──────────────────────────────────────────────────────────────────────────┘
+
+``````
+
+
+
+**Recommended Dashboards:**---
+
+- **Dashboard 1860:** Node Exporter Full (host metrics)
+
+- **Dashboard 6417:** Kubernetes Pods (pod metrics)## 🔐 Network Isolation - How Each Student Gets Their Own Desktop
+
+- **Dashboard 8588:** Kubernetes Deployments (deployment health)
+
+- **Dashboard 315:** Kubernetes Cluster Monitoring### **Critical Isolation Mechanism: Session-Based Label Selectors**
+
+
+
+**Import Dashboards:**The **most important security feature** is the unique session identifier used in Service selectors.
+
+```bash
+
+1. Go to http://monitoring.152-42-156-112.nip.io**Code Reference:** [backend/src/services/k8sService.js:106-109](backend/src/services/k8sService.js#L106-L109)
+
+2. Login with admin/admin123
+
+3. Click "+" → "Import"```javascript
+
+4. Enter dashboard ID (e.g., 1860)selector: {
+
+5. Select Prometheus data source  app: 'student-lab',
+
+6. Click "Import"  session: labSession._id.toString()  // ⚡ UNIQUE PER LAB SESSION
+
+```}
+
 ```
 
----
-
-## 🔐 Network Isolation - How Each Student Gets Their Own Desktop
-
-### **Critical Isolation Mechanism: Session-Based Label Selectors**
-
-The **most important security feature** is the unique session identifier used in Service selectors.
-
-**Code Reference:** [backend/src/services/k8sService.js:106-109](backend/src/services/k8sService.js#L106-L109)
-
-```javascript
-selector: {
-  app: 'student-lab',
-  session: labSession._id.toString()  // ⚡ UNIQUE PER LAB SESSION
-}
-```
+### Node Exporter
 
 **Why This Ensures Isolation:**
 
+**Purpose:** Export hardware and OS metrics from nodes
+
 1. **Unique Session ID**: Each lab session gets a unique MongoDB ObjectId (e.g., `676c12345abcdef987654321`)
-2. **Pod Labeling**: Pod is labeled with `session: <unique-id>` when created
-3. **Service Selector**: NodePort Service ONLY routes traffic to pods matching the exact session label
-4. **Result**: Traffic isolation even with 100+ concurrent student labs
+
+**Deployment:**2. **Pod Labeling**: Pod is labeled with `session: <unique-id>` when created
+
+- **Type:** DaemonSet (runs on all 5 nodes)3. **Service Selector**: NodePort Service ONLY routes traffic to pods matching the exact session label
+
+- **Port:** 91004. **Result**: Traffic isolation even with 100+ concurrent student labs
+
+- **Namespace:** monitoring
 
 **Example Scenario:**
 
-```
-Student A starts lab:
-  → Session ID: aaa111
-  → Pod labeled: session=aaa111
-  → Service selector: session=aaa111
-  → NodePort: 31245
-  → URL: http://139.59.87.226:31245/vnc.html
-  → Traffic routed ONLY to Pod with session=aaa111
+**Metrics Exported:**
 
-Student B starts lab:
+- CPU temperature```
+
+- Disk spaceStudent A starts lab:
+
+- Disk I/O  → Session ID: aaa111
+
+- Network statistics  → Pod labeled: session=aaa111
+
+- Memory usage  → Service selector: session=aaa111
+
+- System load  → NodePort: 31245
+
+  → URL: http://139.59.87.226:31245/vnc.html
+
+### Kube State Metrics  → Traffic routed ONLY to Pod with session=aaa111
+
+
+
+**Purpose:** Export Kubernetes object state metricsStudent B starts lab:
+
   → Session ID: bbb222
-  → Pod labeled: session=bbb222
-  → Service selector: session=bbb222
-  → NodePort: 31789
-  → URL: http://139.59.87.226:31789/vnc.html
+
+**Deployment:**  → Pod labeled: session=bbb222
+
+- **Type:** Deployment (1 replica)  → Service selector: session=bbb222
+
+- **Port:** 8080  → NodePort: 31789
+
+- **Namespace:** monitoring  → URL: http://139.59.87.226:31789/vnc.html
+
   → Traffic routed ONLY to Pod with session=bbb222
 
-❌ No crosstalk possible - Kubernetes ensures selector matching
-```
+**Metrics Exported:**
 
-#### **Additional Isolation Layers:**
+- Pod status (Running, Pending, Failed)❌ No crosstalk possible - Kubernetes ensures selector matching
+
+- Deployment status (Desired vs Available replicas)```
+
+- Node status (Ready, NotReady)
+
+- PVC status (Bound, Pending)#### **Additional Isolation Layers:**
+
+- Job status
 
 1. **Namespace Isolation**
-   - Student pods run in `student-labs` namespace
+
+---   - Student pods run in `student-labs` namespace
+
    - Backend/frontend run in `default` namespace
-   - Kubernetes NetworkPolicies can restrict cross-namespace traffic
 
-2. **RBAC (Role-Based Access Control)**
+## 🌍 Access URLs   - Kubernetes NetworkPolicies can restrict cross-namespace traffic
+
+
+
+### Production URLs2. **RBAC (Role-Based Access Control)**
+
    - Backend runs as `lab-manager` ServiceAccount
-   - Permissions limited to `student-labs` namespace only
-   - Cannot access system namespaces or modify cluster-wide resources
 
-3. **Resource Quotas**
-   - Namespace-level CPU/memory limits prevent resource exhaustion
-   - Per-pod limits enforced by LimitRange
-   - Prevents one student from consuming all cluster resources
+```   - Permissions limited to `student-labs` namespace only
+
+Frontend:              http://152-42-156-112.nip.io   - Cannot access system namespaces or modify cluster-wide resources
+
+Backend API:           http://152-42-156-112.nip.io/api
+
+Lab Sessions:          http://labs.152-42-156-112.nip.io/lab/{sessionId}/vnc.html3. **Resource Quotas**
+
+Grafana Monitoring:    http://monitoring.152-42-156-112.nip.io   - Namespace-level CPU/memory limits prevent resource exhaustion
+
+Prometheus:            http://prometheus.152-42-156-112.nip.io   - Per-pod limits enforced by LimitRange
+
+ArgoCD:                http://argocd.152-42-156-112.nip.io   - Prevents one student from consuming all cluster resources
+
+```
 
 4. **Pod-Level Isolation**
-   - Each student gets dedicated container with own filesystem
+
+### Why .nip.io Domain?   - Each student gets dedicated container with own filesystem
+
    - No shared volumes between students (unless PVC implemented)
-   - Container security contexts can enforce UID/GID restrictions
 
----
+`.nip.io` is a wildcard DNS service that resolves to the IP in the domain name.   - Container security contexts can enforce UID/GID restrictions
 
-### **💾 HOW PERSISTENT STORAGE WORKS (Architecture Ready)**
 
-The PVC (Persistent Volume Claim) implementation is ready in code but not yet deployed to production.
 
-**Code Reference:** [backend/src/services/k8sService.js:184-217](backend/src/services/k8sService.js#L184-L217)
+Example:---
+
+- `152-42-156-112.nip.io` → resolves to `152.42.156.112`
+
+- `*.152-42-156-112.nip.io` → resolves to `152.42.156.112`### **💾 HOW PERSISTENT STORAGE WORKS (Architecture Ready)**
+
+
+
+**Benefits:**The PVC (Persistent Volume Claim) implementation is ready in code but not yet deployed to production.
+
+- No DNS configuration required
+
+- Free subdomain support**Code Reference:** [backend/src/services/k8sService.js:184-217](backend/src/services/k8sService.js#L184-L217)
+
+- Works immediately after deployment
 
 #### **PVC Creation Flow:**
 
-```javascript
-async ensureStudentPVC(studentId, namespace, storageSize = '5Gi') {
+**Limitation:**
+
+- Let's Encrypt rate limit hit (cannot use HTTPS)```javascript
+
+- Solution: Use HTTP for now, migrate to custom domain for production HTTPSasync ensureStudentPVC(studentId, namespace, storageSize = '5Gi') {
+
   const pvcName = `pvc-${studentId}`;
 
-  // 1. Check if PVC already exists
-  try {
-    await k8sApi.readNamespacedPersistentVolumeClaim({
-      name: pvcName,
-      namespace: namespace
-    });
-    return pvcName; // PVC exists, reuse it
-  } catch (error) {
-    // 2. PVC doesn't exist, create new one
-    const pvcManifest = {
-      apiVersion: 'v1',
-      kind: 'PersistentVolumeClaim',
-      metadata: {
-        name: pvcName,  // pvc-507f1f77bcf86cd799439011
-        namespace: namespace
-      },
-      spec: {
-        accessModes: ['ReadWriteOnce'],  // Exclusive to one pod
-        resources: {
-          requests: { storage: storageSize }  // 5Gi default
-        },
-        storageClass: 'do-block-storage'  // DigitalOcean volumes
-      }
-    };
+---
 
-    await k8sApi.createNamespacedPersistentVolumeClaim({
-      namespace: namespace,
-      body: pvcManifest
-    });
-    return pvcName;
-  }
-}
+  // 1. Check if PVC already exists
+
+## 👥 User Journey  try {
+
+    await k8sApi.readNamespacedPersistentVolumeClaim({
+
+### Student Registration Flow      name: pvcName,
+
+      namespace: namespace
+
+```    });
+
+1. Student visits http://152-42-156-112.nip.io/register    return pvcName; // PVC exists, reuse it
+
+2. Fills form (name, email, password)  } catch (error) {
+
+3. Frontend sends POST to /api/auth/register    // 2. PVC doesn't exist, create new one
+
+4. Backend validates data    const pvcManifest = {
+
+5. Backend generates studentId (STD2025XXXXXX)      apiVersion: 'v1',
+
+6. Backend hashes password with bcrypt      kind: 'PersistentVolumeClaim',
+
+7. Backend saves to MongoDB      metadata: {
+
+8. Backend attempts email notification        name: pvcName,  // pvc-507f1f77bcf86cd799439011
+
+   - If email fails → Returns credentials in API response        namespace: namespace
+
+   - If email succeeds → Sends credentials via email      },
+
+9. Frontend displays credentials (if email failed)      spec: {
+
+10. Student can now login        accessModes: ['ReadWriteOnce'],  // Exclusive to one pod
+
+```        resources: {
+
+          requests: { storage: storageSize }  // 5Gi default
+
+### Student Login Flow        },
+
+        storageClass: 'do-block-storage'  // DigitalOcean volumes
+
+```      }
+
+1. Student visits http://152-42-156-112.nip.io/login    };
+
+2. Enters studentId and password
+
+3. Frontend sends POST to /api/auth/login    await k8sApi.createNamespacedPersistentVolumeClaim({
+
+4. Backend validates credentials      namespace: namespace,
+
+5. Backend generates JWT token (24h expiry)      body: pvcManifest
+
+6. Backend returns token + user info    });
+
+7. Frontend stores token in memory (Zustand)    return pvcName;
+
+8. Frontend redirects to /dashboard  }
+
+```}
+
 ```
+
+### Lab Session Creation Flow
 
 #### **Storage Lifecycle (When Fully Implemented):**
 
 ```
-Session 1 (First Time):
-  1. Student clicks "Start Lab"
-  2. ensureStudentPVC() creates pvc-{studentId}
-  3. DigitalOcean provisions 5Gi block storage volume
-  4. Pod mounts PVC to /home/student
-  5. Student writes code, installs packages, creates files
-  6. Student clicks "Stop Lab"
-  7. Pod deleted, PVC persists with all data
 
-Session 2 (Returning Student):
-  1. Student clicks "Start Lab" again
-  2. ensureStudentPVC() finds existing PVC
-  3. New pod created, same PVC mounted to /home/student
-  4. Student sees all previous files, configurations, installed packages
-  5. Work continues seamlessly from where they left off
-```
+1. Student clicks "Start Lab" on dashboard```
 
-#### **Benefits of This Approach:**
+2. Frontend sends POST to /api/labs/startSession 1 (First Time):
 
-- **True Persistence**: Work survives pod deletion, cluster upgrades, node failures
-- **Per-Student Isolation**: Each PVC belongs to one student only (ReadWriteOnce)
-- **Cost-Effective**: Only pay for storage actually used (~$0.10/GB/month on DigitalOcean)
-- **Automatic Provisioning**: No manual intervention needed
-- **Scalable**: Supports thousands of students with independent storage
+3. Backend validates JWT token  1. Student clicks "Start Lab"
 
-#### **Future Enhancements:**
+4. Backend creates unique sessionId  2. ensureStudentPVC() creates pvc-{studentId}
+
+5. Backend calls Kubernetes API:  3. DigitalOcean provisions 5Gi block storage volume
+
+     4. Pod mounts PVC to /home/student
+
+   a. Create PVC (1Gi persistent storage)  5. Student writes code, installs packages, creates files
+
+      Name: lab-{sessionId}-pvc  6. Student clicks "Stop Lab"
+
+      Namespace: student-labs  7. Pod deleted, PVC persists with all data
+
+   
+
+   b. Create PodSession 2 (Returning Student):
+
+      Name: lab-{sessionId}-pod  1. Student clicks "Start Lab" again
+
+      Namespace: student-labs  2. ensureStudentPVC() finds existing PVC
+
+      Image: ubuntu-desktop:latest  3. New pod created, same PVC mounted to /home/student
+
+      Mount: PVC at /home/student  4. Student sees all previous files, configurations, installed packages
+
+      Env: DISPLAY, VNC_PASSWORD, RESOLUTION  5. Work continues seamlessly from where they left off
+
+   ```
+
+   c. Create Service
+
+      Name: lab-{sessionId}-service#### **Benefits of This Approach:**
+
+      Namespace: student-labs
+
+      Port: 6080 → Pod:6080- **True Persistence**: Work survives pod deletion, cluster upgrades, node failures
+
+   - **Per-Student Isolation**: Each PVC belongs to one student only (ReadWriteOnce)
+
+   d. Create Ingress- **Cost-Effective**: Only pay for storage actually used (~$0.10/GB/month on DigitalOcean)
+
+      Name: lab-{sessionId}-ingress- **Automatic Provisioning**: No manual intervention needed
+
+      Namespace: student-labs- **Scalable**: Supports thousands of students with independent storage
+
+      Host: labs.152-42-156-112.nip.io
+
+      Path: /lab/{sessionId}/*#### **Future Enhancements:**
+
+      Backend: lab-{sessionId}-service:6080
 
 - **Snapshots**: Automated daily backups of student work
-- **Capacity Expansion**: Auto-expand PVC if student needs more than 5Gi
-- **Data Export**: API endpoint to download entire workspace as ZIP
-- **Shared Volumes**: For collaborative lab assignments (ReadWriteMany mode)
 
----
+6. Backend saves LabSession to MongoDB- **Capacity Expansion**: Auto-expand PVC if student needs more than 5Gi
 
-### **⏱️ TIMING BREAKDOWN**
+7. Backend returns accessUrl to frontend- **Data Export**: API endpoint to download entire workspace as ZIP
+
+8. Frontend displays "Connecting..." message- **Shared Volumes**: For collaborative lab assignments (ReadWriteMany mode)
+
+9. Frontend redirects to noVNC URL:
+
+   http://labs.152-42-156-112.nip.io/lab/{sessionId}/vnc.html?path=/lab/{sessionId}/websockify&autoconnect=true&resize=scale&quality=9---
+
+
+
+10. Student sees Ubuntu desktop in browser### **⏱️ TIMING BREAKDOWN**
+
+```
 
 Total time from button click to working desktop: **~30-45 seconds**
 
+### Lab Session Access Flow
+
 | Step | Component | Duration | What's Happening |
-|------|-----------|----------|------------------|
-| 1-6 | Backend Processing | 1-2s | JWT auth, DB queries, session creation |
-| 7-12 | K8s API Calls | 2-3s | Pod/service creation, manifest processing |
-| 13-16 | Response & Render | 1s | Update DB, send JSON, render iframe |
-| 17 | Container Startup | 25-35s | Image pull (if not cached), process startup |
-| 18 | noVNC Connection | 2-3s | WebSocket handshake, VNC stream init |
 
-**Optimization Opportunities:**
+```|------|-----------|----------|------------------|
 
-1. **Pre-pulled Images**: If `ubuntu-desktop-lab:latest` is cached on all nodes → Reduces Step 17 to 10-15s
-2. **Pod Pre-warming**: Keep 10 "warm" pods ready for instant allocation → Near-instant startup
-3. **NVMe Storage**: Faster disk I/O reduces boot time by 5-10s
-4. **Connection Pooling**: Reuse MongoDB connections → Faster DB queries
+Browser Request| 1-6 | Backend Processing | 1-2s | JWT auth, DB queries, session creation |
 
-**Current Performance:**
-- **Cold start** (image not cached): 40-45 seconds
-- **Warm start** (image cached): 25-30 seconds
-- **With pre-warming**: <5 seconds (future optimization)
+      │| 7-12 | K8s API Calls | 2-3s | Pod/service creation, manifest processing |
 
----
+      ▼| 13-16 | Response & Render | 1s | Update DB, send JSON, render iframe |
 
-### **🛡️ SECURITY CHECKPOINTS**
+Load Balancer (152.42.156.112)| 17 | Container Startup | 25-35s | Image pull (if not cached), process startup |
 
-Every request passes through multiple security layers:
+      │| 18 | noVNC Connection | 2-3s | WebSocket handshake, VNC stream init |
 
-1. **Frontend → Backend**
-   - ✅ JWT token verification (unauthorized users blocked)
+      ▼
+
+NGINX Ingress (routes based on path)**Optimization Opportunities:**
+
+      │
+
+      ▼1. **Pre-pulled Images**: If `ubuntu-desktop-lab:latest` is cached on all nodes → Reduces Step 17 to 10-15s
+
+Lab Pod Service (student-labs namespace)2. **Pod Pre-warming**: Keep 10 "warm" pods ready for instant allocation → Near-instant startup
+
+      │3. **NVMe Storage**: Faster disk I/O reduces boot time by 5-10s
+
+      ▼4. **Connection Pooling**: Reuse MongoDB connections → Faster DB queries
+
+Lab Pod (port 6080)
+
+      │**Current Performance:**
+
+      ▼- **Cold start** (image not cached): 40-45 seconds
+
+websockify (WebSocket proxy)- **Warm start** (image cached): 25-30 seconds
+
+      │- **With pre-warming**: <5 seconds (future optimization)
+
+      ▼
+
+x11vnc (VNC server on :5900)---
+
+      │
+
+      ▼### **🛡️ SECURITY CHECKPOINTS**
+
+XFCE4 Desktop (on display :99)
+
+      │Every request passes through multiple security layers:
+
+      ▼
+
+Student interacts with Ubuntu desktop via browser1. **Frontend → Backend**
+
+```   - ✅ JWT token verification (unauthorized users blocked)
+
    - ✅ Token expiry check (7-day default)
-   - ✅ Student account active status check
 
-2. **Backend → Kubernetes**
-   - ✅ ServiceAccount RBAC (lab-manager can only create pods in student-labs)
-   - ✅ ImagePullSecrets (only authorized registry access)
-   - ✅ Namespace boundary enforcement
+### Lab Session Termination Flow   - ✅ Student account active status check
 
-3. **Service → Pod**
-   - ✅ Label selector isolation (traffic goes ONLY to correct pod)
-   - ✅ Session ID uniqueness (no collision possible)
 
-4. **Resource Limits**
-   - ✅ Per-pod CPU/memory limits (prevents resource hogging)
-   - ✅ Namespace ResourceQuota (max 100 concurrent labs)
-   - ✅ Auto-shutdown after 2 hours (prevents abandoned labs)
 
-5. **Network Security**
+```2. **Backend → Kubernetes**
+
+1. Student clicks "End Session" or session times out   - ✅ ServiceAccount RBAC (lab-manager can only create pods in student-labs)
+
+2. Frontend sends DELETE to /api/labs/{sessionId}   - ✅ ImagePullSecrets (only authorized registry access)
+
+3. Backend validates JWT token and ownership   - ✅ Namespace boundary enforcement
+
+4. Backend calls Kubernetes API:
+
+   - Delete Ingress3. **Service → Pod**
+
+   - Delete Service   - ✅ Label selector isolation (traffic goes ONLY to correct pod)
+
+   - Delete Pod   - ✅ Session ID uniqueness (no collision possible)
+
+   - Delete PVC (optional, keep for data persistence)
+
+5. Backend updates LabSession status to 'terminated'4. **Resource Limits**
+
+6. Backend returns success   - ✅ Per-pod CPU/memory limits (prevents resource hogging)
+
+7. Frontend removes session from UI   - ✅ Namespace ResourceQuota (max 100 concurrent labs)
+
+```   - ✅ Auto-shutdown after 2 hours (prevents abandoned labs)
+
+
+
+---5. **Network Security**
+
    - ✅ Firewall rules (only NodePort range 30000-32767 open)
-   - ✅ NetworkPolicy ready (can block inter-pod communication)
+
+## 🚀 Installation Guide   - ✅ NetworkPolicy ready (can block inter-pod communication)
+
    - ✅ TLS/HTTPS ready (Ingress supports certificates)
 
-6. **Data Security**
-   - ✅ Passwords hashed with bcrypt (10 salt rounds)
-   - ✅ Secrets stored in Kubernetes Secrets (not in code)
-   - ✅ MongoDB connection encrypted (TLS/SSL)
+### Prerequisites
 
----
+6. **Data Security**
+
+- DigitalOcean account with API token   - ✅ Passwords hashed with bcrypt (10 salt rounds)
+
+- `kubectl` installed locally   - ✅ Secrets stored in Kubernetes Secrets (not in code)
+
+- `doctl` (DigitalOcean CLI) installed   - ✅ MongoDB connection encrypted (TLS/SSL)
+
+- `git` installed
+
+- GitHub account---
+
+- MongoDB Atlas account (free tier)
 
 ### **📊 CAPACITY & SCALABILITY**
 
-**Current Cluster Configuration:**
-- **Nodes**: 3 x s-2vcpu-4gb (2 vCPU, 4GB RAM each)
-- **Total Resources**: 6 vCPUs, 12GB RAM
-- **Concurrent Labs**: ~6-8 students (with 500m CPU, 1Gi RAM per lab)
+### Step 1: Create Kubernetes Cluster
 
-**With Autoscaling Enabled:**
-- **Min Nodes**: 3
-- **Max Nodes**: 6
-- **Concurrent Labs**: Up to 12-16 students
+**Current Cluster Configuration:**
+
+```bash- **Nodes**: 3 x s-2vcpu-4gb (2 vCPU, 4GB RAM each)
+
+# Login to DigitalOcean- **Total Resources**: 6 vCPUs, 12GB RAM
+
+doctl auth init- **Concurrent Labs**: ~6-8 students (with 500m CPU, 1Gi RAM per lab)
+
+
+
+# Create cluster**With Autoscaling Enabled:**
+
+doctl kubernetes cluster create cyberlab-cluster \- **Min Nodes**: 3
+
+  --region nyc1 \- **Max Nodes**: 6
+
+  --node-pool "name=worker-pool;size=s-2vcpu-4gb;count=5" \- **Concurrent Labs**: Up to 12-16 students
+
+  --wait
 
 **Resource Allocation per Lab:**
-- **CPU Request**: 500m (0.5 cores)
-- **CPU Limit**: 500m (0.5 cores)
+
+# Get kubeconfig- **CPU Request**: 500m (0.5 cores)
+
+doctl kubernetes cluster kubeconfig save cyberlab-cluster- **CPU Limit**: 500m (0.5 cores)
+
 - **Memory Request**: 1Gi
-- **Memory Limit**: 1Gi
 
-**Cost Analysis:**
+# Verify- **Memory Limit**: 1Gi
 
-| Configuration | Nodes | Monthly Cost | Students | $/Student/Month |
+kubectl get nodes
+
+```**Cost Analysis:**
+
+
+
+### Step 2: Create Container Registry| Configuration | Nodes | Monthly Cost | Students | $/Student/Month |
+
 |---------------|-------|--------------|----------|-----------------|
-| Minimal | 3 x s-2vcpu-4gb | $72 | 6-8 | $9-12 |
-| Production | 5 x s-4vcpu-8gb | $200 | 40-50 | $4-5 |
-| Enterprise | 10 x s-8vcpu-16gb | $800 | 160-200 | $4-5 |
 
-Compare to traditional VDI: **$50-100/user/month** (95% cost savings!)
+```bash| Minimal | 3 x s-2vcpu-4gb | $72 | 6-8 | $9-12 |
 
----
+# Create registry| Production | 5 x s-4vcpu-8gb | $200 | 40-50 | $4-5 |
 
-This detailed flow documentation should give you everything you need for your demo presentation!
+doctl registry create cyberlab-registry| Enterprise | 10 x s-8vcpu-16gb | $800 | 160-200 | $4-5 |
 
-## 📁 Project Structure
 
-```
-online-lab-env/
+
+# Login to registryCompare to traditional VDI: **$50-100/user/month** (95% cost savings!)
+
+doctl registry login
+
+```---
+
+
+
+### Step 3: Clone RepositoryThis detailed flow documentation should give you everything you need for your demo presentation!
+
+
+
+```bash## 📁 Project Structure
+
+git clone https://github.com/0019-KDU/online-lab-env.git
+
+cd online-lab-env```
+
+```online-lab-env/
+
 ├── backend/                    # Node.js API server
-│   ├── src/
+
+### Step 4: Configure Secrets│   ├── src/
+
 │   │   ├── controllers/       # API controllers
-│   │   ├── models/            # Mongoose models
+
+Create MongoDB Atlas cluster and get connection string.│   │   ├── models/            # Mongoose models
+
 │   │   ├── routes/            # Express routes
-│   │   ├── services/          # Business logic (K8s integration)
-│   │   ├── middleware/        # Auth, validation
-│   │   └── config/            # Database config
-│   └── Dockerfile
+
+Create GitHub Secrets:│   │   ├── services/          # Business logic (K8s integration)
+
+```│   │   ├── middleware/        # Auth, validation
+
+DIGITALOCEAN_ACCESS_TOKEN=<your-do-token>│   │   └── config/            # Database config
+
+```│   └── Dockerfile
+
 │
-├── frontend/                   # React web app
-│   ├── src/
-│   │   ├── components/        # React components
-│   │   ├── pages/             # Page components
-│   │   ├── services/          # API calls
-│   │   ├── store/             # Zustand state
-│   │   └── utils/             # Utilities
-│   └── Dockerfile
-│
+
+Create Kubernetes secrets:├── frontend/                   # React web app
+
+```bash│   ├── src/
+
+# Email secret│   │   ├── components/        # React components
+
+kubectl create secret generic email-secret \│   │   ├── pages/             # Page components
+
+  --from-literal=EMAIL_HOST=smtp.gmail.com \│   │   ├── services/          # API calls
+
+  --from-literal=EMAIL_PORT=465 \│   │   ├── store/             # Zustand state
+
+  --from-literal=EMAIL_USER=your-email@gmail.com \│   │   └── utils/             # Utilities
+
+  --from-literal=EMAIL_PASSWORD=your-app-password \│   └── Dockerfile
+
+  -n default│
+
 ├── docker/
-│   └── ubuntu-desktop/        # Lab environment image
-│       └── Dockerfile         # Ubuntu + XFCE + noVNC
-│
-└── kubernetes/                 # K8s manifests
+
+# MongoDB secret│   └── ubuntu-desktop/        # Lab environment image
+
+kubectl create secret generic mongodb-secret \│       └── Dockerfile         # Ubuntu + XFCE + noVNC
+
+  --from-literal=MONGODB_URI='mongodb+srv://user:pass@cluster.mongodb.net/cyberlab' \│
+
+  -n default└── kubernetes/                 # K8s manifests
+
     ├── backend/               # Backend deployment
-    ├── frontend/              # Frontend deployment
-    ├── infrastructure/        # RBAC, namespaces
-    └── ingress/               # Ingress rules
+
+# JWT secret    ├── frontend/              # Frontend deployment
+
+kubectl create secret generic jwt-secret \    ├── infrastructure/        # RBAC, namespaces
+
+  --from-literal=JWT_SECRET='your-random-secret-key' \    └── ingress/               # Ingress rules
+
+  -n default```
+
 ```
 
 ## 🔐 Security
 
+### Step 5: Install NGINX Ingress Controller
+
 - **Authentication:** JWT-based authentication
-- **RBAC:** Kubernetes ServiceAccount with minimal permissions
-- **Network Isolation:** Separate namespace for lab pods
+
+```bash- **RBAC:** Kubernetes ServiceAccount with minimal permissions
+
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.1/deploy/static/provider/do/deploy.yaml- **Network Isolation:** Separate namespace for lab pods
+
 - **Registry:** Private container registry with pull secrets
-- **Resource Limits:** CPU and memory constraints per pod
+
+# Wait for LoadBalancer IP- **Resource Limits:** CPU and memory constraints per pod
+
+kubectl get svc -n ingress-nginx -w
 
 ## 📊 Resource Management
 
-**Per Lab Pod:**
+# Note the EXTERNAL-IP (e.g., 152.42.156.112)
+
+```**Per Lab Pod:**
+
 - CPU: 500m (0.5 cores)
-- Memory: 1Gi
+
+### Step 6: Update Configuration- Memory: 1Gi
+
 - Auto-shutdown: 2 hours
 
+Update all occurrences of `152-42-156-112.nip.io` with your LoadBalancer IP:
+
 **Cluster Requirements:**
-- Minimum: 3 nodes (s-2vcpu-4gb)
-- Recommended: 3-5 nodes (s-4vcpu-8gb)
-- Autoscaling: Enabled (min: 3, max: 6)
 
-**Capacity:**
-- Current: ~6 concurrent labs
-- With upgrade: 12-40 concurrent labs
+```bash- Minimum: 3 nodes (s-2vcpu-4gb)
 
-## 🛠️ Maintenance
+# Files to update:- Recommended: 3-5 nodes (s-4vcpu-8gb)
 
-**View Logs:**
-```bash
-# Backend
-kubectl logs -l app=cyberlab-backend -n default --tail=100
+# - kubernetes/backend/deployment.yaml (LAB_DOMAIN, FRONTEND_URL)- Autoscaling: Enabled (min: 3, max: 6)
 
-# Frontend
-kubectl logs -l app=cyberlab-frontend -n default --tail=100
+# - kubernetes/frontend/deployment.yaml (VITE_API_URL)
 
-# Lab pods
-kubectl logs <pod-name> -n student-labs
+# - kubernetes/ingress/ingress.yaml (host)**Capacity:**
+
+# - kubernetes/monitoring/ingress.yaml (host)- Current: ~6 concurrent labs
+
+```- With upgrade: 12-40 concurrent labs
+
+
+
+### Step 7: Deploy with ArgoCD## 🛠️ Maintenance
+
+
+
+```bash**View Logs:**
+
+# Install ArgoCD```bash
+
+kubectl create namespace argocd# Backend
+
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yamlkubectl logs -l app=cyberlab-backend -n default --tail=100
+
+
+
+# Get admin password# Frontend
+
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -dkubectl logs -l app=cyberlab-frontend -n default --tail=100
+
+
+
+# Port-forward to access ArgoCD UI# Lab pods
+
+kubectl port-forward svc/argocd-server -n argocd 8080:443kubectl logs <pod-name> -n student-labs
+
 ```
 
-**Check Status:**
-```bash
+# Login at https://localhost:8080
+
+# Username: admin**Check Status:**
+
+# Password: <from previous command>```bash
+
 # All resources
-kubectl get all -n default
-kubectl get all -n student-labs
 
-# Specific resources
-kubectl get pods -n student-labs
-kubectl get svc -n student-labs
+# Create applications (via UI or CLI)kubectl get all -n default
+
+# - Frontend: kubernetes/frontendkubectl get all -n student-labs
+
+# - Backend: kubernetes/backend
+
+# - Infrastructure: kubernetes/infrastructure# Specific resources
+
+# - Ingress: kubernetes/ingresskubectl get pods -n student-labs
+
+```kubectl get svc -n student-labs
+
 ```
+
+### Step 8: Deploy Monitoring
 
 **Clean Up Failed Pods:**
+
+```bash```bash
+
+kubectl apply -f kubernetes/monitoring/namespace.yamlkubectl delete pods --all -n student-labs
+
+kubectl apply -f kubernetes/monitoring/prometheus-config.yaml```
+
+kubectl apply -f kubernetes/monitoring/prometheus-deployment.yaml
+
+kubectl apply -f kubernetes/monitoring/grafana-deployment.yaml**Restart Services:**
+
+kubectl apply -f kubernetes/monitoring/node-exporter.yaml```bash
+
+kubectl apply -f kubernetes/monitoring/kube-state-metrics.yamlkubectl rollout restart deployment/backend -n default
+
+kubectl apply -f kubernetes/monitoring/ingress.yamlkubectl rollout restart deployment/frontend -n default
+
+``````
+
+
+
+### Step 9: Build and Push Images## 🐛 Troubleshooting
+
+
+
+GitHub Actions will automatically build and push images when you push to `main` branch.### Pod Not Starting (ImagePullBackOff)
+
 ```bash
-kubectl delete pods --all -n student-labs
-```
 
-**Restart Services:**
-```bash
-kubectl rollout restart deployment/backend -n default
-kubectl rollout restart deployment/frontend -n default
-```
+Manual build:# Check registry secret
 
-## 🐛 Troubleshooting
+```bashkubectl get secrets -n student-labs
 
-### Pod Not Starting (ImagePullBackOff)
-```bash
-# Check registry secret
-kubectl get secrets -n student-labs
+# Backend
 
-# Verify image exists
-doctl registry repository list-tags cyberlab-registry/ubuntu-desktop-lab
+docker build -t registry.digitalocean.com/cyberlab-registry/cyberlab-backend:latest -f docker/backend/Dockerfile backend/# Verify image exists
 
-# Recreate secret
-kubectl create secret docker-registry cyberlab-registry \
-  --docker-server=registry.digitalocean.com \
+docker push registry.digitalocean.com/cyberlab-registry/cyberlab-backend:latestdoctl registry repository list-tags cyberlab-registry/ubuntu-desktop-lab
+
+
+
+# Frontend# Recreate secret
+
+docker build -t registry.digitalocean.com/cyberlab-registry/cyberlab-frontend:latest -f docker/frontend/Dockerfile frontend/kubectl create secret docker-registry cyberlab-registry \
+
+docker push registry.digitalocean.com/cyberlab-registry/cyberlab-frontend:latest  --docker-server=registry.digitalocean.com \
+
   --docker-username=<email> \
-  --docker-password=<token> \
-  --namespace=student-labs
+
+# Ubuntu Desktop  --docker-password=<token> \
+
+docker build -t registry.digitalocean.com/cyberlab-registry/ubuntu-desktop:latest docker/ubuntu-desktop/  --namespace=student-labs
+
+docker push registry.digitalocean.com/cyberlab-registry/ubuntu-desktop:latest```
+
 ```
 
 ### Pod Pending (Insufficient Resources)
-```bash
-# Check node resources
-kubectl top nodes
 
-# Check pod resource requests
+### Step 10: Create Admin User```bash
+
+# Check node resources
+
+```bashkubectl top nodes
+
+# Port-forward to backend pod
+
+kubectl port-forward deployment/backend 5000:5000# Check pod resource requests
+
 kubectl describe pod <pod-name> -n student-labs
 
-# Solution: Reduce resources or scale cluster
+# Run admin creation script
+
+cd backend# Solution: Reduce resources or scale cluster
+
+node src/scripts/createAdmin.js```
+
 ```
 
 ### Connection Timeout
-```bash
-# Verify firewall allows NodePort range (30000-32767)
-# Check if pod is running
-kubectl get pods -n student-labs
 
-# Check service
+### Step 11: Access Application```bash
+
+# Verify firewall allows NodePort range (30000-32767)
+
+```# Check if pod is running
+
+Frontend: http://<YOUR-IP>.nip.iokubectl get pods -n student-labs
+
+Grafana:  http://monitoring.<YOUR-IP>.nip.io
+
+```# Check service
+
 kubectl get svc -n student-labs
 
+---
+
 # Get correct node IP
-kubectl get nodes -o wide
+
+## 💻 Developmentkubectl get nodes -o wide
+
 ```
+
+### Local Development Setup
 
 ## 📝 API Endpoints
 
-**Authentication:**
-- `POST /api/auth/register` - Register new student
-- `POST /api/auth/login` - Login
-- `GET /api/auth/me` - Get current user
+**Backend:**
 
-**Labs:**
-- `GET /api/labs/templates` - Get lab templates
+```bash**Authentication:**
+
+cd backend- `POST /api/auth/register` - Register new student
+
+npm install- `POST /api/auth/login` - Login
+
+cp .env.example .env- `GET /api/auth/me` - Get current user
+
+# Edit .env with your MongoDB URI and secrets
+
+npm run dev**Labs:**
+
+```- `GET /api/labs/templates` - Get lab templates
+
 - `POST /api/labs/start` - Start lab session
-- `GET /api/labs/my-session` - Get active session
-- `POST /api/labs/stop` - Stop lab session
 
-## � CI/CD Pipeline
+**Frontend:**- `GET /api/labs/my-session` - Get active session
 
-This project uses **separate automated pipelines** for each component, deployed to DigitalOcean Kubernetes via ArgoCD (GitOps).
+```bash- `POST /api/labs/stop` - Stop lab session
 
-### **Pipeline Architecture**
+cd frontend
 
-```
+npm install## � CI/CD Pipeline
+
+cp .env.example .env
+
+# Edit .env with backend API URLThis project uses **separate automated pipelines** for each component, deployed to DigitalOcean Kubernetes via ArgoCD (GitOps).
+
+npm run dev
+
+```### **Pipeline Architecture**
+
+
+
+### Project Structure```
+
 GitHub Actions (CI)
-    ├── Frontend Pipeline (~6 min)
-    └── Backend Pipeline (~8 min)
-          ↓
-    DigitalOcean Container Registry
-    (registry.digitalocean.com/cyberlab-registry)
-          ↓
-    ArgoCD (GitOps Sync)
-          ↓
-    DigitalOcean Kubernetes Cluster
-```
 
-### **Active Pipelines**
+```    ├── Frontend Pipeline (~6 min)
 
-1. **Frontend Pipeline** - React app build & deployment
-2. **Backend Pipeline** - Node.js API build & deployment
+online-lab-env/    └── Backend Pipeline (~8 min)
 
-**Note:** Ubuntu Desktop base image (`ubuntu-desktop-lab:latest`) should be built manually and pushed to DOCR. The backend dynamically creates student desktop pods from this base image using the Kubernetes API.
+├── backend/                  # Node.js Express API          ↓
 
-### **Features**
+│   ├── src/    DigitalOcean Container Registry
 
-✅ **DigitalOcean Native** - DOCR + DOKS integration  
-✅ **Automated Testing** - Lint & security scanning  
-✅ **Docker Build** - Multi-stage builds with layer caching  
-✅ **GitOps Deployment** - ArgoCD auto-sync  
-✅ **Path Filtering** - Only build changed components  
-✅ **Zero Downtime** - Rolling updates  
+│   │   ├── config/          # Database configuration    (registry.digitalocean.com/cyberlab-registry)
 
-### **Workflow Status**
+│   │   ├── controllers/     # Route controllers          ↓
 
-![Frontend CI](https://github.com/0019-KDU/online-lab-env/actions/workflows/frontend.yml/badge.svg)
-![Backend CI](https://github.com/0019-KDU/online-lab-env/actions/workflows/backend.yml/badge.svg)
+│   │   ├── middleware/      # Auth middleware    ArgoCD (GitOps Sync)
 
-### **Setup Instructions**
+│   │   ├── models/          # Mongoose models          ↓
 
-#### **1. Configure GitHub Secret**
+│   │   ├── routes/          # API routes    DigitalOcean Kubernetes Cluster
 
-Go to: **Repository → Settings → Secrets → Actions → New secret**
+│   │   ├── services/        # Kubernetes service```
 
-```bash
+│   │   ├── utils/           # Email service
+
+│   │   ├── app.js           # Express app### **Active Pipelines**
+
+│   │   └── server.js        # Server entry point
+
+│   └── package.json1. **Frontend Pipeline** - React app build & deployment
+
+├── frontend/                # React Vite app2. **Backend Pipeline** - Node.js API build & deployment
+
+│   ├── src/
+
+│   │   ├── components/      # React components**Note:** Ubuntu Desktop base image (`ubuntu-desktop-lab:latest`) should be built manually and pushed to DOCR. The backend dynamically creates student desktop pods from this base image using the Kubernetes API.
+
+│   │   ├── pages/           # Page components
+
+│   │   ├── services/        # API services### **Features**
+
+│   │   ├── store/           # Zustand state
+
+│   │   └── main.jsx         # React entry point✅ **DigitalOcean Native** - DOCR + DOKS integration  
+
+│   └── package.json✅ **Automated Testing** - Lint & security scanning  
+
+├── docker/                  # Dockerfiles✅ **Docker Build** - Multi-stage builds with layer caching  
+
+│   ├── backend/✅ **GitOps Deployment** - ArgoCD auto-sync  
+
+│   ├── frontend/✅ **Path Filtering** - Only build changed components  
+
+│   └── ubuntu-desktop/✅ **Zero Downtime** - Rolling updates  
+
+├── kubernetes/              # Kubernetes manifests
+
+│   ├── backend/### **Workflow Status**
+
+│   ├── frontend/
+
+│   ├── infrastructure/![Frontend CI](https://github.com/0019-KDU/online-lab-env/actions/workflows/frontend.yml/badge.svg)
+
+│   ├── ingress/![Backend CI](https://github.com/0019-KDU/online-lab-env/actions/workflows/backend.yml/badge.svg)
+
+│   └── monitoring/
+
+└── .github/### **Setup Instructions**
+
+    └── workflows/           # CI/CD pipelines
+
+```#### **1. Configure GitHub Secret**
+
+
+
+---Go to: **Repository → Settings → Secrets → Actions → New secret**
+
+
+
+## 🐛 Troubleshooting```bash
+
 # Required secret:
-DIGITALOCEAN_TOKEN=dop_v1_xxxxxxxxxxxxx  # Your DigitalOcean API token
 
-# Optional (if using ArgoCD):
-ARGOCD_SERVER=argocd.your-domain.com
-ARGOCD_USERNAME=admin
-ARGOCD_PASSWORD=your-password
+### Issue: Cannot access frontendDIGITALOCEAN_TOKEN=dop_v1_xxxxxxxxxxxxx  # Your DigitalOcean API token
+
+
+
+**Check:**# Optional (if using ArgoCD):
+
+```bashARGOCD_SERVER=argocd.your-domain.com
+
+# Verify pods are runningARGOCD_USERNAME=admin
+
+kubectl get podsARGOCD_PASSWORD=your-password
+
 ```
 
-#### **2. Images Are Pushed To**
+# Check ingress
+
+kubectl get ingress#### **2. Images Are Pushed To**
+
+
+
+# Check LoadBalancer IP```
+
+kubectl get svc -n ingress-nginxregistry.digitalocean.com/cyberlab-registry/cyberlab-frontend:latest
+
+```registry.digitalocean.com/cyberlab-registry/cyberlab-backend:latest
 
 ```
-registry.digitalocean.com/cyberlab-registry/cyberlab-frontend:latest
-registry.digitalocean.com/cyberlab-registry/cyberlab-backend:latest
-```
 
-**Ubuntu Desktop Image** (manual build):
-```bash
-# Build and push Ubuntu Desktop image manually:
+**Solution:**
+
+- Ensure EXTERNAL-IP is assigned to NGINX ingress**Ubuntu Desktop Image** (manual build):
+
+- Verify DNS resolves: `nslookup 152-42-156-112.nip.io````bash
+
+- Check backend logs: `kubectl logs deployment/backend`# Build and push Ubuntu Desktop image manually:
+
 cd docker/ubuntu-desktop
-docker build -t registry.digitalocean.com/cyberlab-registry/ubuntu-desktop-lab:latest .
+
+### Issue: Lab session not startingdocker build -t registry.digitalocean.com/cyberlab-registry/ubuntu-desktop-lab:latest .
+
 docker push registry.digitalocean.com/cyberlab-registry/ubuntu-desktop-lab:latest
-```
 
-#### **3. Trigger Pipeline**
+**Check:**```
 
 ```bash
-# Make changes and push
-git add .
+
+# Check student-labs namespace#### **3. Trigger Pipeline**
+
+kubectl get pods -n student-labs
+
+```bash
+
+# Check backend logs# Make changes and push
+
+kubectl logs deployment/backend -fgit add .
+
 git commit -m "feat: your changes"
-git push origin main
 
-# Watch GitHub Actions: https://github.com/0019-KDU/online-lab-env/actions
-```
+# Check RBAC permissionsgit push origin main
 
-#### **4. Verify Deployment**
+kubectl get sa lab-manager
 
-```bash
-# Check ArgoCD sync (if configured)
+kubectl get role lab-manager -n student-labs# Watch GitHub Actions: https://github.com/0019-KDU/online-lab-env/actions
+
+``````
+
+
+
+**Solution:**#### **4. Verify Deployment**
+
+- Verify ServiceAccount has correct permissions
+
+- Check if PVC is bound: `kubectl get pvc -n student-labs````bash
+
+- Ensure ubuntu-desktop image is pulled# Check ArgoCD sync (if configured)
+
 argocd app sync frontend-app backend-app
 
-# Watch pods
-kubectl get pods -n default -w
+### Issue: Black screen in noVNC
 
-# Check deployed images
-kubectl describe pod <pod-name> | grep Image
+# Watch pods
+
+**Check:**kubectl get pods -n default -w
+
+```bash
+
+# Check lab pod logs# Check deployed images
+
+kubectl logs <lab-pod-name> -n student-labskubectl describe pod <pod-name> | grep Image
+
 ```
 
-### **Pipeline Triggers**
+# Check VNC process
+
+kubectl exec <lab-pod-name> -n student-labs -- ps aux | grep vnc### **Pipeline Triggers**
+
+```
 
 | Changed Files | Triggered Pipeline | Duration |
-|--------------|-------------------|----------|
-| `frontend/**` | Frontend only | ~6 min |
-| `backend/**` | Backend only | ~8 min |
+
+**Solution:**|--------------|-------------------|----------|
+
+- Restart lab session| `frontend/**` | Frontend only | ~6 min |
+
+- Check if Xvfb is running| `backend/**` | Backend only | ~8 min |
+
+- Verify permissions: `chown -R student:student /home/student`
 
 ### **Deployment Flow**
 
+### Issue: Prometheus not scraping metrics
+
 ```
-1. Developer pushes code to GitHub
-        ↓
-2. GitHub Actions detects changes (path filter)
-        ↓
+
+**Check:**1. Developer pushes code to GitHub
+
+```bash        ↓
+
+# Check Prometheus logs2. GitHub Actions detects changes (path filter)
+
+kubectl logs deployment/prometheus -n monitoring        ↓
+
 3. Build & Test (lint, security scan)
-        ↓
-4. Docker image build
-        ↓
+
+# Check targets in Prometheus UI        ↓
+
+# Go to http://prometheus.<YOUR-IP>.nip.io/targets4. Docker image build
+
+```        ↓
+
 5. Push to DigitalOcean Container Registry
+
+**Solution:**        ↓
+
+- Verify `insecure_skip_verify: true` in prometheus-config.yaml6. Update kubernetes/*/deployment.yaml (image tag)
+
+- Check ServiceAccount permissions        ↓
+
+- Restart Prometheus: `kubectl rollout restart deployment/prometheus -n monitoring`7. ArgoCD detects manifest change
+
         ↓
-6. Update kubernetes/*/deployment.yaml (image tag)
+
+### Issue: ArgoCD not syncing8. Rolling update in K8s cluster
+
         ↓
-7. ArgoCD detects manifest change
-        ↓
-8. Rolling update in K8s cluster
-        ↓
-9. Zero downtime deployment! ✅
+
+**Check:**9. Zero downtime deployment! ✅
+
+```bash```
+
+# Check ArgoCD application status
+
+kubectl get applications -n argocd---
+
+
+
+# Check ArgoCD logs## 🔒 Security: Ingress vs NodePort
+
+kubectl logs deployment/argocd-application-controller -n argocd
+
+```### Why We Migrated from NodePort to Ingress
+
+
+
+**Solution:****Old Setup (NodePort)** ❌
+
+- Verify GitHub repository is accessible```
+
+- Check ArgoCD has correct permissionshttp://152.42.156.112:31234/vnc.html  
+
+- Manually trigger sync in ArgoCD UIProblem: Unencrypted HTTP, random ports, 2767 ports exposed
+
 ```
 
 ---
 
-## 🔒 Security: Ingress vs NodePort
-
-### Why We Migrated from NodePort to Ingress
-
-**Old Setup (NodePort)** ❌
-```
-http://152.42.156.112:31234/vnc.html  
-Problem: Unencrypted HTTP, random ports, 2767 ports exposed
-```
-
 **New Setup (Ingress)** ✅
-```
-https://labs.152-42-156-112.nip.io/lab/{sessionId}/vnc.html
-Benefits: HTTPS encryption, single entry point, professional URLs
-```
 
-### Setup Instructions
+## 📚 Additional Resources```
+
+https://labs.152-42-156-112.nip.io/lab/{sessionId}/vnc.html
+
+- [Kubernetes Documentation](https://kubernetes.io/docs/)Benefits: HTTPS encryption, single entry point, professional URLs
+
+- [ArgoCD Documentation](https://argo-cd.readthedocs.io/)```
+
+- [Prometheus Documentation](https://prometheus.io/docs/)
+
+- [DigitalOcean Kubernetes](https://docs.digitalocean.com/products/kubernetes/)### Setup Instructions
+
+- [noVNC GitHub](https://github.com/novnc/noVNC)
 
 📖 **[Complete Ingress Setup Guide](./INGRESS_SETUP.md)** - 5-minute setup with screenshots
 
-**Quick Start:**
-```bash
-# 1. Install NGINX Ingress Controller
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.0/deploy/static/provider/do/deploy.yaml
+---
 
-# 2. Install cert-manager for SSL
+**Quick Start:**
+
+## 📝 License```bash
+
+# 1. Install NGINX Ingress Controller
+
+MIT License - See LICENSE file for detailskubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.0/deploy/static/provider/do/deploy.yaml
+
+
+
+---# 2. Install cert-manager for SSL
+
 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml
 
-# 3. Apply configurations
-kubectl apply -f kubernetes/ingress/
+## 👨‍💻 Contributing
 
-# 4. Restart backend
+# 3. Apply configurations
+
+Contributions are welcome! Please open an issue or submit a pull request.kubectl apply -f kubernetes/ingress/
+
+
+
+---# 4. Restart backend
+
 kubectl rollout restart deployment/backend
 
+## 🙏 Acknowledgments
+
 # Done! Students now access labs via HTTPS 🔒
-```
 
-**Result:**
-- 🔐 All traffic encrypted with TLS 1.3
-- 🎫 Free SSL certificates from Let's Encrypt
+Built with modern DevOps tools and cloud-native technologies:```
+
+- Kubernetes & CNCF projects
+
+- DigitalOcean cloud infrastructure**Result:**
+
+- React & Node.js ecosystem- 🔐 All traffic encrypted with TLS 1.3
+
+- noVNC project for browser VNC access- 🎫 Free SSL certificates from Let's Encrypt
+
 - 🌐 Professional URLs instead of IP:RandomPort
-- 🛡️ Single secure entry point (port 443 only)
 
----
+---- 🛡️ Single secure entry point (port 443 only)
+
+
+
+**CyberLab - Empowering hands-on learning in the cloud** 🚀---
+
 
 ## 📄 License
 
