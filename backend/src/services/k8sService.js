@@ -184,9 +184,9 @@ class K8sService {
           namespace: namespace,
           annotations: {
             'kubernetes.io/ingress.class': 'nginx',
-            'cert-manager.io/cluster-issuer': 'letsencrypt-prod', // Free SSL certificates
+            // Removed cert-manager due to Let's Encrypt rate limits on nip.io domain
             'nginx.ingress.kubernetes.io/rewrite-target': '/$2',
-            'nginx.ingress.kubernetes.io/ssl-redirect': 'false', // Disable SSL redirect for WebSocket
+            'nginx.ingress.kubernetes.io/ssl-redirect': 'false', // Disable SSL redirect - using HTTP
             'nginx.ingress.kubernetes.io/websocket-services': serviceName,
             'nginx.ingress.kubernetes.io/proxy-read-timeout': '3600',
             'nginx.ingress.kubernetes.io/proxy-send-timeout': '3600',
@@ -194,10 +194,7 @@ class K8sService {
           }
         },
         spec: {
-          tls: [{
-            hosts: [domain],
-            secretName: `${domain}-tls`
-          }],
+          // TLS removed due to Let's Encrypt rate limits on nip.io
           rules: [{
             host: domain,
             http: {

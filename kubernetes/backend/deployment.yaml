@@ -53,7 +53,7 @@ spec:
         - name: LAB_DOMAIN
           value: "labs.152-42-156-112.nip.io"  # Subdomain for student labs
         - name: LAB_PROTOCOL
-          value: "https"  # Force HTTPS for secure connections
+          value: "http"  # Use HTTP due to Let's Encrypt rate limits on nip.io
         # Email configuration for student registration
         - name: EMAIL_HOST
           value: "smtp.gmail.com"  # Change to your SMTP server
