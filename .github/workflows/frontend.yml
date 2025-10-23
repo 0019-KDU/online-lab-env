@@ -140,7 +140,7 @@ jobs:
                   git pull --rebase origin main
                   git push
 
-    # Job 4: Notify ArgoCD (Optional)
+    # Job 4: Notify ArgoCD (Optional - skipped if secrets not configured)
     notify-argocd:
         name: Sync ArgoCD
         needs: update-manifests
@@ -148,7 +148,18 @@ jobs:
         if: github.ref == 'refs/heads/main'
 
         steps:
+            - name: Check if ArgoCD is configured
+              id: check-argocd
+              run: |
+                  if [ -z "${{ secrets.ARGOCD_SERVER }}" ]; then
+                    echo "ArgoCD not configured, skipping..."
+                    echo "skip=true" >> $GITHUB_OUTPUT
+                  else
+                    echo "skip=false" >> $GITHUB_OUTPUT
+                  fi
+
             - name: Trigger ArgoCD Sync
+              if: steps.check-argocd.outputs.skip != 'true'
               run: |
                   # Install ArgoCD CLI
                   curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
