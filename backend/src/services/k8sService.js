@@ -153,7 +153,8 @@ class K8sService {
       const domain = process.env.LAB_DOMAIN || 'labs.your-domain.com';
       const protocol = process.env.LAB_PROTOCOL || 'https';
       // Include path parameter for noVNC to know the WebSocket base path
-      const accessUrl = `${protocol}://${domain}/lab/${sessionId}/vnc.html?path=/lab/${sessionId}/websockify&autoconnect=true`;
+      // Add scaling and display options: resize=scale to fit desktop to window
+      const accessUrl = `${protocol}://${domain}/lab/${sessionId}/vnc.html?path=/lab/${sessionId}/websockify&autoconnect=true&resize=scale&quality=9`;
       console.log('✅ Generated secure access URL:', accessUrl);
 
       return {
