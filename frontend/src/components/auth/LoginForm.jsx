@@ -25,8 +25,13 @@ const LoginForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await login(formData);
-      navigate('/dashboard');
+      const user = await login(formData);
+      // Redirect based on user role
+      if (user?.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (error) {
       // Error is handled by store
     }

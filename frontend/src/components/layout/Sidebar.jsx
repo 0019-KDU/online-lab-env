@@ -1,16 +1,26 @@
 import { Link, useLocation } from 'react-router-dom';
 import { 
   HomeIcon, 
-  XMarkIcon
+  XMarkIcon,
+  UserGroupIcon,
+  BeakerIcon
 } from '@heroicons/react/24/outline';
 import clsx from 'clsx';
-
-const navigation = [
-  { name: 'My Lab', href: '/dashboard', icon: HomeIcon },
-];
+import useAuthStore from '../../store/authStore';
 
 const Sidebar = ({ isOpen, onClose }) => {
   const location = useLocation();
+  const { user } = useAuthStore();
+
+  // Different navigation based on role
+  const navigation = user?.role === 'admin' 
+    ? [
+        { name: 'Student Management', href: '/admin', icon: UserGroupIcon },
+        { name: 'My Lab', href: '/dashboard', icon: BeakerIcon },
+      ]
+    : [
+        { name: 'My Lab', href: '/dashboard', icon: HomeIcon },
+      ];
 
   return (
     <>
