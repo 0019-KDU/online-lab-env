@@ -67,7 +67,14 @@ const AdminDashboard = () => {
       setShowRegisterModal(false);
       setEditingStudent(null);
     } catch (err) {
-      setError(err.response?.data?.message || 'Operation failed');
+      console.error('Registration error:', err);
+      const errorMessage = err.response?.data?.message || err.message || 'Operation failed';
+      setError(errorMessage);
+      
+      // If token expired, show specific message
+      if (err.response?.status === 401) {
+        setError('Your session has expired. Please logout and login again.');
+      }
     } finally {
       setIsLoading(false);
     }

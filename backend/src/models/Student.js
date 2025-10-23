@@ -25,6 +25,7 @@ const studentSchema = new mongoose.Schema({
   studentId: {
     type: String,
     unique: true,
+    sparse: true, // Allow multiple null values
   },
   registrationNumber: {
     type: String,

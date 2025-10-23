@@ -2,8 +2,15 @@ import api from './api';
 
 // Register student by admin
 export const registerStudent = async (studentData) => {
-  const response = await api.post('/admin/register-student', studentData);
-  return response.data;
+  console.log('Registering student:', studentData);
+  try {
+    const response = await api.post('/admin/register-student', studentData);
+    console.log('Registration response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Registration API error:', error.response || error);
+    throw error;
+  }
 };
 
 // Get all students
