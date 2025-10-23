@@ -58,7 +58,9 @@ spec:
         - name: EMAIL_HOST
           value: "smtp.gmail.com"  # Change to your SMTP server
         - name: EMAIL_PORT
-          value: "587"
+          value: "465"  # Using SSL port (587 is blocked by DigitalOcean)
+        - name: EMAIL_SECURE
+          value: "true"  # Use SSL instead of STARTTLS
         - name: EMAIL_USER
           valueFrom:
             secretKeyRef:

@@ -12,6 +12,26 @@ const generatePassword = () => {
   return password;
 };
 
+// Generate unique studentId
+const generateStudentId = async () => {
+  const year = new Date().getFullYear();
+  let isUnique = false;
+  let studentId = '';
+  
+  while (!isUnique) {
+    const randomNum = Math.floor(100000 + Math.random() * 900000); // 6-digit random number
+    studentId = `STD${year}${randomNum}`;
+    
+    // Check if this studentId already exists
+    const exists = await Student.findOne({ studentId: studentId });
+    if (!exists) {
+      isUnique = true;
+    }
+  }
+  
+  return studentId;
+};
+
 // @desc    Register student by admin
 // @route   POST /api/admin/register-student
 // @access  Private/Admin
@@ -32,6 +52,10 @@ export const registerStudent = async (req, res) => {
         message: 'Please provide all required fields: email, firstName, lastName, registrationNumber, and enrollDate'
       });
     }
+
+    // Auto-generate unique studentId
+    const generatedStudentId = await generateStudentId();
+    console.log(`Auto-generated studentId: ${generatedStudentId}`);
 
     // Check if student already exists
     const studentExists = await Student.findOne({
@@ -56,6 +80,7 @@ export const registerStudent = async (req, res) => {
       password: generatedPassword,
       firstName,
       lastName,
+      studentId: generatedStudentId,
       registrationNumber,
       enrollDate,
       endDate: endDate || null,
@@ -76,41 +101,46 @@ export const registerStudent = async (req, res) => {
       };
 
       // Send email with credentials
+      let emailSent = false;
+      let emailError = null;
+      
       try {
         await sendStudentCredentials(emailData);
-      } catch (emailError) {
-        console.error('Failed to send email:', emailError);
-        // Don't fail the registration if email fails, but warn admin
-        return res.status(201).json({
-          message: 'Student registered successfully, but email notification failed',
-          student: {
-            _id: student._id,
-            email: student.email,
-            firstName: student.firstName,
-            lastName: student.lastName,
-            registrationNumber: student.registrationNumber,
-            enrollDate: student.enrollDate,
-            endDate: student.endDate,
-            role: student.role,
-          },
-          password: generatedPassword, // Return password so admin can manually share
-          emailError: emailError.message,
-        });
+        emailSent = true;
+      } catch (err) {
+        console.error('Failed to send email:', err);
+        emailError = err.message;
       }
 
-      res.status(201).json({
-        message: 'Student registered successfully and credentials sent via email',
+      // Always return student data with credentials
+      const response = {
+        message: emailSent 
+          ? 'Student registered successfully and credentials sent via email' 
+          : '⚠️ Student registered successfully, but email failed. Please share these credentials manually:',
         student: {
           _id: student._id,
           email: student.email,
           firstName: student.firstName,
           lastName: student.lastName,
+          studentId: student.studentId,  // Include auto-generated studentId
           registrationNumber: student.registrationNumber,
           enrollDate: student.enrollDate,
           endDate: student.endDate,
           role: student.role,
         },
-      });
+        credentials: !emailSent ? {
+          email: student.email,
+          password: generatedPassword,
+          studentId: student.studentId,
+          loginUrl: process.env.FRONTEND_URL || 'http://152-42-156-112.nip.io'
+        } : undefined,
+      };
+
+      if (emailError) {
+        response.emailError = emailError;
+      }
+
+      res.status(201).json(response);
     }
   } catch (error) {
     console.error('Registration error:', error);

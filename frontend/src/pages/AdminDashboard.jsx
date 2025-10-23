@@ -59,7 +59,20 @@ const AdminDashboard = () => {
         setSuccess('Student updated successfully');
       } else {
         const result = await registerStudent(formData);
-        setSuccess(result.message || 'Student registered successfully and email sent');
+        
+        // Show message with credentials if email failed
+        if (result.credentials) {
+          setSuccess(
+            `${result.message}\n\n` +
+            `📧 Email: ${result.credentials.email}\n` +
+            `🔑 Password: ${result.credentials.password}\n` +
+            `🆔 Student ID: ${result.credentials.studentId}\n` +
+            `🔗 Login: ${result.credentials.loginUrl}\n\n` +
+            `⚠️ Email Error: ${result.emailError || 'SMTP port blocked by DigitalOcean'}`
+          );
+        } else {
+          setSuccess(result.message || 'Student registered successfully and email sent');
+        }
       }
 
       resetForm();
@@ -320,8 +333,10 @@ const AdminDashboard = () => {
                 value={formData.registrationNumber}
                 onChange={handleInputChange}
                 required
+                placeholder="e.g., ST-0029"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+              <p className="text-xs text-gray-500 mt-1">Student ID will be auto-generated (e.g., STD2025123456)</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

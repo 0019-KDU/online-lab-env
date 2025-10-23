@@ -2,19 +2,34 @@ import nodemailer from 'nodemailer';
 
 // Create transporter
 const createTransporter = () => {
+  const port = parseInt(process.env.EMAIL_PORT) || 465;
+  const secure = process.env.EMAIL_SECURE === 'true' || port === 465;
+  
   return nodemailer.createTransport({
     host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-    port: process.env.EMAIL_PORT || 587,
-    secure: false,
+    port: port,
+    secure: secure, // true for 465, false for other ports
+    connectionTimeout: 10000, // 10 seconds
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASSWORD,
     },
+    tls: {
+      rejectUnauthorized: false // Accept self-signed certificates
+    }
   });
 };
 
 // Send student credentials email
 export const sendStudentCredentials = async (studentData) => {
+  // Check if email is configured
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+    console.log('⚠️  Email not configured - skipping email sending');
+    throw new Error('Email service not configured');
+  }
+
   try {
     const transporter = createTransporter();
 
