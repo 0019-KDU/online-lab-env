@@ -6,14 +6,15 @@ metadata:
   name: cyberlab-ingress
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"  # Force HTTPS
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"  # Temporarily disable for testing
     nginx.ingress.kubernetes.io/proxy-body-size: "50m"
 spec:
   ingressClassName: nginx
-  tls:
-  - hosts:
-    - 152-42-156-112.nip.io
-    secretName: cyberlab-tls
+  # TLS disabled due to nip.io rate limit
+  # tls:
+  # - hosts:
+  #   - 152-42-156-112.nip.io
+  #   secretName: cyberlab-tls
   rules:
   - host: 152-42-156-112.nip.io
     http:
