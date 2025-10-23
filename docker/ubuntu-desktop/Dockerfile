@@ -75,6 +75,9 @@ Terminal=false' > /home/student/Desktop/terminal.desktop && \
 
 # Create startup script for XFCE (NO PASSWORD)
 RUN echo '#!/bin/bash\n\
+# Fix permissions for PVC-mounted home directory\n\
+sudo chown -R student:student /home/student 2>/dev/null || true\n\
+mkdir -p /home/student/.config /home/student/.cache /home/student/Desktop /home/student/.vnc\n\
 export DISPLAY=:1\n\
 Xvfb :1 -screen 0 1920x1080x24 &\n\
 sleep 2\n\
