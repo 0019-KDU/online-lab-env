@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: registry.digitalocean.com/cyberlab-registry/cyberlab-frontend:main-d529346
+        image: registry.digitalocean.com/cyberlab-registry/cyberlab-frontend:main-2ddc121
         imagePullPolicy: Always
         ports:
         - containerPort: 80
