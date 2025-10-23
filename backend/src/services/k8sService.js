@@ -169,7 +169,7 @@ class K8sService {
   // Method to create Ingress for a lab session
   async createLabIngress(podName, sessionId, namespace = 'student-labs') {
     try {
-      const k8sNetworkingApi = this.kubeConfig.makeApiClient(k8s.NetworkingV1Api);
+      const k8sNetworkingApi = kc.makeApiClient(k8s.NetworkingV1Api);
       
       const ingressName = `ingress-${podName}`;
       const serviceName = `svc-${podName}`;
@@ -230,8 +230,8 @@ class K8sService {
   // Method to delete a lab pod
   async deleteLabPod(podName, namespace = 'student-labs') {
     try {
-      const k8sCoreApi = this.kubeConfig.makeApiClient(k8s.CoreV1Api);
-      const k8sNetworkingApi = this.kubeConfig.makeApiClient(k8s.NetworkingV1Api);
+      const k8sCoreApi = kc.makeApiClient(k8s.CoreV1Api);
+      const k8sNetworkingApi = kc.makeApiClient(k8s.NetworkingV1Api);
 
       // Delete the pod
       await k8sCoreApi.deleteNamespacedPod({
