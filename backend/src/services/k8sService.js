@@ -69,6 +69,7 @@ class K8sService {
           {
             name: 'ubuntu-desktop',
             image: template.image,
+            imagePullPolicy: 'Always', // Always pull latest image from registry
             ports: [
               { containerPort: 5901, name: 'vnc' },
               { containerPort: 6080, name: 'novnc' },
