@@ -151,7 +151,8 @@ class K8sService {
       // Generate secure access URL with ingress path
       const domain = process.env.LAB_DOMAIN || 'labs.your-domain.com';
       const protocol = process.env.LAB_PROTOCOL || 'https';
-      const accessUrl = `${protocol}://${domain}/lab/${sessionId}/vnc.html?autoconnect=true`;
+      // Include path parameter for noVNC to know the WebSocket base path
+      const accessUrl = `${protocol}://${domain}/lab/${sessionId}/vnc.html?path=/lab/${sessionId}/websockify&autoconnect=true`;
       console.log('✅ Generated secure access URL:', accessUrl);
 
       return {
@@ -185,10 +186,11 @@ class K8sService {
             'kubernetes.io/ingress.class': 'nginx',
             'cert-manager.io/cluster-issuer': 'letsencrypt-prod', // Free SSL certificates
             'nginx.ingress.kubernetes.io/rewrite-target': '/$2',
-            'nginx.ingress.kubernetes.io/ssl-redirect': 'true',
+            'nginx.ingress.kubernetes.io/ssl-redirect': 'false', // Disable SSL redirect for WebSocket
             'nginx.ingress.kubernetes.io/websocket-services': serviceName,
             'nginx.ingress.kubernetes.io/proxy-read-timeout': '3600',
-            'nginx.ingress.kubernetes.io/proxy-send-timeout': '3600'
+            'nginx.ingress.kubernetes.io/proxy-send-timeout': '3600',
+            'nginx.ingress.kubernetes.io/backend-protocol': 'HTTP' // Explicitly set backend protocol
           }
         },
         spec: {
