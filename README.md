@@ -2,18 +2,22 @@
 
 Provides each student with their own Ubuntu desktop (graphical), accessible directly through a web browser. All desktops are containerized and orchestrated on a Kubernetes cluster.
 
-## 🎯 System Architecture
+## 🎯 System Architecture (🔒 Secure with HTTPS)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                      STUDENT BROWSER                         │
-│  http://152-42-156-112.nip.io (Ingress Domain)             │
+│  https://152-42-156-112.nip.io (Main App - HTTPS)          │
+│  https://labs.152-42-156-112.nip.io/lab/{id} (Labs - HTTPS) │
 └────────────────┬────────────────────────────────────────────┘
-                 │
+                 │ TLS 1.3 Encrypted
                  ▼
 ┌─────────────────────────────────────────────────────────────┐
-│              NGINX INGRESS CONTROLLER                        │
-│  Routes /api → Backend    /  → Frontend                     │
+│           NGINX INGRESS CONTROLLER (LoadBalancer)           │
+│  • SSL/TLS termination (Let's Encrypt certificates)         │
+│  • Routes /api → Backend    /  → Frontend                   │
+│  • Dynamic lab routing: /lab/{sessionId} → Student Pod      │
+│  • WebSocket support for VNC streaming                      │
 └────────┬────────────────────────┬───────────────────────────┘
          │                        │
          ▼                        ▼
@@ -29,24 +33,33 @@ Provides each student with their own Ubuntu desktop (graphical), accessible dire
 │  • Node.js + Express                                      │
 │  • MongoDB (Atlas Cloud)                                  │
 │  • Kubernetes API Client                                  │
+│  • Dynamically creates: Pods + Services + Ingresses       │
 └────────┬─────────────────────────────────────────────────┘
          │
-         │ Creates pods/services dynamically
+         │ Creates pods/services/ingresses dynamically
          ▼
 ┌──────────────────────────────────────────────────────────┐
 │          student-labs Namespace                           │
 │                                                            │
-│  ┌────────────────┐      ┌────────────────┐             │
-│  │ Lab Pod        │      │ NodePort Svc   │             │
-│  │ Ubuntu Desktop │◄─────│ Port: 31223    │             │
-│  │ noVNC:6080     │      └────────────────┘             │
+│  ┌────────────────┐  ┌────────────┐  ┌──────────────┐   │
+│  │ Lab Pod        │  │ ClusterIP  │  │  Ingress     │   │
+│  │ Ubuntu Desktop │◄─│   Service  │◄─│  /lab/{id}   │   │
+│  │ noVNC:6080     │  │ Port: 6080 │  │  (HTTPS)     │   │
+│  │ + PVC Storage  │  └────────────┘  └──────────────┘   │
 │  └────────────────┘                                      │
 └──────────────────────────────────────────────────────────┘
          │
-         │ Accessible via
+         │ Accessible via (🔒 HTTPS!)
          ▼
-http://139.59.87.226:31223/vnc.html?autoconnect=true
+https://labs.152-42-156-112.nip.io/lab/{sessionId}/vnc.html?autoconnect=true
 ```
+
+### 🔐 Security Features
+- ✅ **HTTPS Everywhere** - All traffic encrypted with TLS 1.3
+- ✅ **SSL Certificates** - Free auto-renewing certificates from Let's Encrypt
+- ✅ **Single Entry Point** - Only port 443 exposed (vs 30000-32767 with NodePort)
+- ✅ **Path-Based Routing** - Clean URLs with ingress-based isolation
+- ✅ **Persistent Storage** - Each student gets 5Gi PVC mounted at /home/student
 
 ## 🚀 Tech Stack
 
@@ -200,40 +213,90 @@ doctl compute firewall add-rules <firewall-id> \
   --inbound-rules "protocol:tcp,ports:30000-32767,address:0.0.0.0/0"
 ```
 
-## 🔄 Technical Workflow - High Level
+## 🔄 Complete Lab Workflow - Step by Step
 
-### 1. Student Login
+### **Step 1: Student Authentication**
 ```
-POST /api/auth/login
-→ Validates credentials
-→ Returns JWT token
-```
-
-### 2. Start Lab
-```
-POST /api/labs/start
-→ Creates LabSession in MongoDB
-→ Generates unique pod name
-→ Creates Kubernetes Pod with Ubuntu Desktop
-→ Creates NodePort Service (random port 30000-32767)
-→ Returns access URL: http://NODE_IP:PORT/vnc.html?autoconnect=true
+Student clicks "Start Lab"
+    ↓
+Frontend sends POST /api/labs/start
+    ↓
+JWT token in Authorization header
+    ↓
+Backend validates token (middleware/auth.js)
+    ↓
+Student profile loaded from MongoDB
 ```
 
-### 3. Access Desktop
+### **Step 2: Session Check**
+```
+Check for existing running session in MongoDB
+    ↓
+IF EXISTS: Return existing accessUrl immediately
+    ↓
+IF NOT EXISTS: Continue to create new lab
+```
+
+### **Step 3: Lab Provisioning**
+```
+Create LabSession record in MongoDB
+    ↓
+Generate unique pod name: lab-{studentId}-{timestamp}
+    ↓
+Call k8sService.deployLabPod()
+```
+
+### **Step 4: Kubernetes Deployment**
+```
+Build pod manifest with:
+    - Image: ubuntu-desktop-lab:latest
+    - Resources: 500m CPU, 1Gi RAM
+    - Labels: session={uniqueSessionId}
+    ↓
+Create pod in student-labs namespace
+    ↓
+Generate random NodePort (30000-32767)
+    ↓
+Create NodePort service with session label selector
+```
+
+### **Step 5: Network Routing & Isolation**
+```
+Service routes traffic to pod via label selector
+    ↓
+session={uniqueId} ensures isolation (critical!)
+    ↓
+Generate access URL: http://{publicIP}:{nodePort}/vnc.html?autoconnect=true
+    ↓
+Update LabSession in MongoDB with accessUrl and status='running'
+```
+
+### **Step 6: Student Access**
 ```
 Frontend displays iframe with accessUrl
-→ Browser connects to NodePort
-→ websockify proxies WebSocket → VNC
-→ x11vnc serves XFCE desktop
-→ Student interacts with Ubuntu desktop
+    ↓
+Browser connects to NodePort
+    ↓
+Traffic routed to correct pod via service selector
+    ↓
+noVNC establishes WebSocket connection
+    ↓
+websockify proxies WebSocket ↔ VNC
+    ↓
+x11vnc streams XFCE desktop
+    ↓
+Student sees Ubuntu desktop and can interact!
 ```
 
-### 4. Stop Lab
+### **Step 7: Stop Lab**
 ```
 POST /api/labs/stop
-→ Deletes Kubernetes Pod
-→ Deletes NodePort Service
-→ Updates session status to 'stopped'
+    ↓
+Delete Kubernetes Pod
+    ↓
+Delete NodePort Service
+    ↓
+Update LabSession status to 'stopped' in MongoDB
 ```
 
 ---
@@ -688,9 +751,9 @@ This section provides a comprehensive, step-by-step breakdown of what happens fr
 
 ---
 
-### **🔐 HOW NETWORK ISOLATION WORKS**
+## 🔐 Network Isolation - How Each Student Gets Their Own Desktop
 
-#### **Critical Isolation Mechanism: Session-Based Label Selectors**
+### **Critical Isolation Mechanism: Session-Based Label Selectors**
 
 The **most important security feature** is the unique session identifier used in Service selectors.
 
@@ -1081,6 +1144,184 @@ kubectl get nodes -o wide
 - `GET /api/labs/my-session` - Get active session
 - `POST /api/labs/stop` - Stop lab session
 
+## � CI/CD Pipeline
+
+This project uses **separate automated pipelines** for each component, deployed to DigitalOcean Kubernetes via ArgoCD (GitOps).
+
+### **Pipeline Architecture**
+
+```
+GitHub Actions (CI)
+    ├── Frontend Pipeline (~6 min)
+    └── Backend Pipeline (~8 min)
+          ↓
+    DigitalOcean Container Registry
+    (registry.digitalocean.com/cyberlab-registry)
+          ↓
+    ArgoCD (GitOps Sync)
+          ↓
+    DigitalOcean Kubernetes Cluster
+```
+
+### **Active Pipelines**
+
+1. **Frontend Pipeline** - React app build & deployment
+2. **Backend Pipeline** - Node.js API build & deployment
+
+**Note:** Ubuntu Desktop base image (`ubuntu-desktop-lab:latest`) should be built manually and pushed to DOCR. The backend dynamically creates student desktop pods from this base image using the Kubernetes API.
+
+### **Features**
+
+✅ **DigitalOcean Native** - DOCR + DOKS integration  
+✅ **Automated Testing** - Lint & security scanning  
+✅ **Docker Build** - Multi-stage builds with layer caching  
+✅ **GitOps Deployment** - ArgoCD auto-sync  
+✅ **Path Filtering** - Only build changed components  
+✅ **Zero Downtime** - Rolling updates  
+
+### **Workflow Status**
+
+![Frontend CI](https://github.com/0019-KDU/online-lab-env/actions/workflows/frontend.yml/badge.svg)
+![Backend CI](https://github.com/0019-KDU/online-lab-env/actions/workflows/backend.yml/badge.svg)
+
+### **Setup Instructions**
+
+#### **1. Configure GitHub Secret**
+
+Go to: **Repository → Settings → Secrets → Actions → New secret**
+
+```bash
+# Required secret:
+DIGITALOCEAN_TOKEN=dop_v1_xxxxxxxxxxxxx  # Your DigitalOcean API token
+
+# Optional (if using ArgoCD):
+ARGOCD_SERVER=argocd.your-domain.com
+ARGOCD_USERNAME=admin
+ARGOCD_PASSWORD=your-password
+```
+
+#### **2. Images Are Pushed To**
+
+```
+registry.digitalocean.com/cyberlab-registry/cyberlab-frontend:latest
+registry.digitalocean.com/cyberlab-registry/cyberlab-backend:latest
+```
+
+**Ubuntu Desktop Image** (manual build):
+```bash
+# Build and push Ubuntu Desktop image manually:
+cd docker/ubuntu-desktop
+docker build -t registry.digitalocean.com/cyberlab-registry/ubuntu-desktop-lab:latest .
+docker push registry.digitalocean.com/cyberlab-registry/ubuntu-desktop-lab:latest
+```
+
+#### **3. Trigger Pipeline**
+
+```bash
+# Make changes and push
+git add .
+git commit -m "feat: your changes"
+git push origin main
+
+# Watch GitHub Actions: https://github.com/0019-KDU/online-lab-env/actions
+```
+
+#### **4. Verify Deployment**
+
+```bash
+# Check ArgoCD sync (if configured)
+argocd app sync frontend-app backend-app
+
+# Watch pods
+kubectl get pods -n default -w
+
+# Check deployed images
+kubectl describe pod <pod-name> | grep Image
+```
+
+### **Pipeline Triggers**
+
+| Changed Files | Triggered Pipeline | Duration |
+|--------------|-------------------|----------|
+| `frontend/**` | Frontend only | ~6 min |
+| `backend/**` | Backend only | ~8 min |
+
+### **Deployment Flow**
+
+```
+1. Developer pushes code to GitHub
+        ↓
+2. GitHub Actions detects changes (path filter)
+        ↓
+3. Build & Test (lint, security scan)
+        ↓
+4. Docker image build
+        ↓
+5. Push to DigitalOcean Container Registry
+        ↓
+6. Update kubernetes/*/deployment.yaml (image tag)
+        ↓
+7. ArgoCD detects manifest change
+        ↓
+8. Rolling update in K8s cluster
+        ↓
+9. Zero downtime deployment! ✅
+```
+
+---
+
+## 🔒 Security: Ingress vs NodePort
+
+### Why We Migrated from NodePort to Ingress
+
+**Old Setup (NodePort)** ❌
+```
+http://152.42.156.112:31234/vnc.html  
+Problem: Unencrypted HTTP, random ports, 2767 ports exposed
+```
+
+**New Setup (Ingress)** ✅
+```
+https://labs.152-42-156-112.nip.io/lab/{sessionId}/vnc.html
+Benefits: HTTPS encryption, single entry point, professional URLs
+```
+
+### Setup Instructions
+
+📖 **[Complete Ingress Setup Guide](./INGRESS_SETUP.md)** - 5-minute setup with screenshots
+
+**Quick Start:**
+```bash
+# 1. Install NGINX Ingress Controller
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.0/deploy/static/provider/do/deploy.yaml
+
+# 2. Install cert-manager for SSL
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml
+
+# 3. Apply configurations
+kubectl apply -f kubernetes/ingress/
+
+# 4. Restart backend
+kubectl rollout restart deployment/backend
+
+# Done! Students now access labs via HTTPS 🔒
+```
+
+**Result:**
+- 🔐 All traffic encrypted with TLS 1.3
+- 🎫 Free SSL certificates from Let's Encrypt
+- 🌐 Professional URLs instead of IP:RandomPort
+- 🛡️ Single secure entry point (port 443 only)
+
+---
+
 ## 📄 License
+
+MIT
+```
+
+---
+
+## �📄 License
 
 MIT

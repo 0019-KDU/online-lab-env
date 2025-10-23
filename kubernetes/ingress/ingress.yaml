@@ -1,12 +1,19 @@
+---
+# Main application ingress (Frontend + Backend API)
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: cyberlab-ingress
   annotations:
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"  # Force HTTPS
     nginx.ingress.kubernetes.io/proxy-body-size: "50m"
 spec:
   ingressClassName: nginx
+  tls:
+  - hosts:
+    - 152-42-156-112.nip.io
+    secretName: cyberlab-tls
   rules:
   - host: 152-42-156-112.nip.io
     http:
@@ -27,3 +34,8 @@ spec:
             name: frontend-service
             port:
               number: 80
+
+---
+# Student labs subdomain (labs.152-42-156-112.nip.io)
+# Individual lab ingresses are created dynamically by backend k8sService.js
+# Each student gets: https://labs.152-42-156-112.nip.io/lab/{sessionId}/vnc.html

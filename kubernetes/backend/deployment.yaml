@@ -49,8 +49,30 @@ spec:
           value: "7200000"
         - name: MAX_CONCURRENT_LABS
           value: "3"
-        - name: PUBLIC_NODE_IP
-          value: "139.59.87.226"
+        # Ingress configuration for secure lab access
+        - name: LAB_DOMAIN
+          value: "labs.152-42-156-112.nip.io"  # Subdomain for student labs
+        - name: LAB_PROTOCOL
+          value: "https"  # Force HTTPS for secure connections
+        # Email configuration for student registration
+        - name: EMAIL_HOST
+          value: "smtp.gmail.com"  # Change to your SMTP server
+        - name: EMAIL_PORT
+          value: "587"
+        - name: EMAIL_USER
+          valueFrom:
+            secretKeyRef:
+              name: email-secret
+              key: username
+        - name: EMAIL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: email-secret
+              key: password
+        - name: EMAIL_FROM_NAME
+          value: "CyberLab Admin"
+        - name: FRONTEND_URL
+          value: "https://152-42-156-112.nip.io"  # Your frontend URL
         resources:
           requests:
             memory: "256Mi"

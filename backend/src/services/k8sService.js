@@ -34,7 +34,11 @@ class K8sService {
       throw new Error('Namespace is required but was not provided');
     }
 
-    // Pod specification
+    // Create PVC for student if doesn't exist
+    const pvcName = await this.ensureStudentPVC(studentId, namespace);
+    console.log('✅ PVC ensured for student:', studentId, 'PVC:', pvcName);
+
+    // Pod specification with PVC mounted
     const podManifest = {
       apiVersion: 'v1',
       kind: 'Pod',
@@ -51,6 +55,14 @@ class K8sService {
         imagePullSecrets: [
           {
             name: 'cyberlab-registry',
+          },
+        ],
+        volumes: [
+          {
+            name: 'student-workspace',
+            persistentVolumeClaim: {
+              claimName: pvcName,
+            },
           },
         ],
         containers: [
@@ -75,6 +87,12 @@ class K8sService {
               { name: 'VNC_PASSWORD', value: 'student123' },
               { name: 'STUDENT_ID', value: studentId },
             ],
+            volumeMounts: [
+              {
+                name: 'student-workspace',
+                mountPath: '/home/student',
+              },
+            ],
           },
         ],
         restartPolicy: 'Never',
@@ -90,10 +108,7 @@ class K8sService {
       });
       console.log('Pod created successfully:', createPodResponse.body?.metadata?.name);
 
-      // Generate random NodePort (30000-32767)
-      const nodePort = Math.floor(Math.random() * (32767 - 30000) + 30000);
-
-      // Create NodePort service
+      // Create ClusterIP service (internal only)
       const serviceManifest = {
         apiVersion: 'v1',
         kind: 'Service',
@@ -102,7 +117,7 @@ class K8sService {
           namespace: namespace,
         },
         spec: {
-          type: 'NodePort',
+          type: 'ClusterIP', // Internal only, accessed via Ingress
           selector: {
             app: 'student-lab',
             session: labSession._id.toString(),
@@ -111,7 +126,6 @@ class K8sService {
             {
               port: 6080,
               targetPort: 6080,
-              nodePort: nodePort,
               protocol: 'TCP',
               name: 'novnc'
             },
@@ -124,22 +138,26 @@ class K8sService {
           namespace: namespace,
           body: serviceManifest
         });
-        console.log('✅ NodePort Service created:', `svc-${podName}`, 'Port:', nodePort);
+        console.log('✅ ClusterIP Service created:', `svc-${podName}`);
       } catch (svcError) {
         console.error('Failed to create service:', svcError.body || svcError.message);
         throw new Error(`Failed to create service: ${svcError.body?.message || svcError.message}`);
       }
 
-      // Use the public IP configured in environment
-      const publicIP = process.env.PUBLIC_NODE_IP || '152.42.156.112';
+      // Create Ingress for this lab session
+      const sessionId = labSession._id.toString();
+      await this.createLabIngress(podName, sessionId, namespace);
 
-      const accessUrl = `http://${publicIP}:${nodePort}/vnc.html?autoconnect=true`;
-      console.log('✅ Generated access URL:', accessUrl);
+      // Generate secure access URL with ingress path
+      const domain = process.env.LAB_DOMAIN || 'labs.your-domain.com';
+      const protocol = process.env.LAB_PROTOCOL || 'https';
+      const accessUrl = `${protocol}://${domain}/lab/${sessionId}/vnc.html?autoconnect=true`;
+      console.log('✅ Generated secure access URL:', accessUrl);
 
       return {
         accessUrl: accessUrl,
-        vncPort: nodePort,
-        publicIP: publicIP
+        sessionId: sessionId,
+        domain: domain
       };
     } catch (error) {
       console.error('Error deploying lab pod:', error);
@@ -148,21 +166,104 @@ class K8sService {
     }
   }
 
-  // Delete a lab pod
-  async deleteLabPod(podName, namespace) {
+  // Method to create Ingress for a lab session
+  async createLabIngress(podName, sessionId, namespace = 'student-labs') {
     try {
-      await k8sApi.deleteNamespacedPod({
+      const k8sNetworkingApi = this.kubeConfig.makeApiClient(k8s.NetworkingV1Api);
+      
+      const ingressName = `ingress-${podName}`;
+      const serviceName = `svc-${podName}`;
+      const domain = process.env.LAB_DOMAIN || 'labs.your-domain.com';
+
+      const ingressManifest = {
+        apiVersion: 'networking.k8s.io/v1',
+        kind: 'Ingress',
+        metadata: {
+          name: ingressName,
+          namespace: namespace,
+          annotations: {
+            'kubernetes.io/ingress.class': 'nginx',
+            'cert-manager.io/cluster-issuer': 'letsencrypt-prod', // Free SSL certificates
+            'nginx.ingress.kubernetes.io/rewrite-target': '/$2',
+            'nginx.ingress.kubernetes.io/ssl-redirect': 'true',
+            'nginx.ingress.kubernetes.io/websocket-services': serviceName,
+            'nginx.ingress.kubernetes.io/proxy-read-timeout': '3600',
+            'nginx.ingress.kubernetes.io/proxy-send-timeout': '3600'
+          }
+        },
+        spec: {
+          tls: [{
+            hosts: [domain],
+            secretName: `${domain}-tls`
+          }],
+          rules: [{
+            host: domain,
+            http: {
+              paths: [{
+                path: `/lab/${sessionId}(/|$)(.*)`,
+                pathType: 'ImplementationSpecific',
+                backend: {
+                  service: {
+                    name: serviceName,
+                    port: { number: 6080 }
+                  }
+                }
+              }]
+            }
+          }]
+        }
+      };
+
+      await k8sNetworkingApi.createNamespacedIngress({
+        namespace: namespace,
+        body: ingressManifest
+      });
+      console.log('✅ Ingress created:', ingressName);
+      
+      return ingressName;
+    } catch (error) {
+      console.error('Error creating ingress:', error.body || error.message);
+      throw new Error(`Failed to create ingress: ${error.body?.message || error.message}`);
+    }
+  }
+
+  // Method to delete a lab pod
+  async deleteLabPod(podName, namespace = 'student-labs') {
+    try {
+      const k8sCoreApi = this.kubeConfig.makeApiClient(k8s.CoreV1Api);
+      const k8sNetworkingApi = this.kubeConfig.makeApiClient(k8s.NetworkingV1Api);
+
+      // Delete the pod
+      await k8sCoreApi.deleteNamespacedPod({
         name: podName,
         namespace: namespace
       });
-      await k8sApi.deleteNamespacedService({
-        name: `svc-${podName}`,
+      console.log('✅ Pod deleted:', podName);
+
+      // Delete the associated service
+      const serviceName = `svc-${podName}`;
+      await k8sCoreApi.deleteNamespacedService({
+        name: serviceName,
         namespace: namespace
       });
+      console.log('✅ Service deleted:', serviceName);
+
+      // Delete the associated ingress
+      const ingressName = `ingress-${podName}`;
+      try {
+        await k8sNetworkingApi.deleteNamespacedIngress({
+          name: ingressName,
+          namespace: namespace
+        });
+        console.log('✅ Ingress deleted:', ingressName);
+      } catch (ingressError) {
+        console.warn('⚠️ Ingress deletion warning:', ingressError.body?.message || ingressError.message);
+      }
+
       return true;
     } catch (error) {
-      console.error('Error deleting lab pod:', error);
-      throw new Error('Failed to delete lab environment');
+      console.error('Error deleting lab pod:', error.body || error.message);
+      throw new Error(`Failed to delete lab pod: ${error.body?.message || error.message}`);
     }
   }
 
@@ -185,12 +286,16 @@ class K8sService {
     const pvcName = `pvc-${studentId}`;
 
     try {
+      // Check if PVC already exists
       await k8sApi.readNamespacedPersistentVolumeClaim({
         name: pvcName,
         namespace: namespace
       });
+      console.log('PVC already exists:', pvcName);
       return pvcName;
     } catch (error) {
+      // PVC doesn't exist, create it
+      console.log('Creating new PVC for student:', studentId);
       const pvcManifest = {
         apiVersion: 'v1',
         kind: 'PersistentVolumeClaim',
@@ -200,6 +305,7 @@ class K8sService {
         },
         spec: {
           accessModes: ['ReadWriteOnce'],
+          storageClassName: 'do-block-storage', // DigitalOcean Block Storage
           resources: {
             requests: {
               storage: storageSize,
@@ -212,6 +318,7 @@ class K8sService {
         namespace: namespace,
         body: pvcManifest
       });
+      console.log('✅ PVC created successfully:', pvcName);
       return pvcName;
     }
   }
