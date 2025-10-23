@@ -137,6 +137,7 @@ jobs:
                   git config --global user.email "github-actions[bot]@users.noreply.github.com"
                   git add kubernetes/frontend/deployment.yaml
                   git commit -m "Update frontend image to main-${GITHUB_SHA::7}" || echo "No changes to commit"
+                  git pull --rebase origin main
                   git push
 
     # Job 4: Notify ArgoCD (Optional)

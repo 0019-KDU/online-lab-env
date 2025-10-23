@@ -149,6 +149,7 @@ jobs:
                   git config --global user.email "github-actions[bot]@users.noreply.github.com"
                   git add kubernetes/backend/deployment.yaml
                   git commit -m "Update backend image to main-${GITHUB_SHA::7}" || echo "No changes to commit"
+                  git pull --rebase origin main
                   git push
 
     # Job 5: Sync ArgoCD
