@@ -342,7 +342,16 @@ class K8sService {
           name: podName,
           namespace: namespace
         });
-        const pod = response.body;
+        
+        // Handle different response structures
+        const pod = response.body || response;
+        
+        // Check if we got valid pod data
+        if (!pod || !pod.metadata) {
+          console.log(`⚠️ Invalid pod response, retrying...`);
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          continue;
+        }
         
         // Check if pod is ready
         if (pod.status && pod.status.conditions) {
