@@ -29,6 +29,7 @@ class K8sService {
       labSessionType: typeof labSession,
       isMongooseDoc: labSession.constructor?.name
     });
+    console.log('✅ Using fixed Kubernetes API calls with positional parameters');
 
     if (!namespace) {
       throw new Error('Namespace is required but was not provided');
