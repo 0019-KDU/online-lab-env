@@ -338,7 +338,10 @@ class K8sService {
 
     while (Date.now() - startTime < timeoutMs) {
       try {
-        const response = await k8sApi.readNamespacedPod(podName, namespace);
+        const response = await k8sApi.readNamespacedPod({
+          name: podName,
+          namespace: namespace
+        });
         const pod = response.body;
         
         // Check if pod is ready
