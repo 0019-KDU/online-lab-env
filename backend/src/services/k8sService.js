@@ -339,16 +339,12 @@ class K8sService {
 
     while (Date.now() - startTime < timeoutMs) {
       try {
-        const pod = await k8sApi.readNamespacedPod({
-          name: podName,
-          namespace: namespace
-        });
-
-        const podStatus = pod.body.status;
+        const response = await k8sApi.readNamespacedPod(podName, namespace);
+        const pod = response.body;
         
         // Check if pod is ready
-        if (podStatus.conditions) {
-          const readyCondition = podStatus.conditions.find(c => c.type === 'Ready');
+        if (pod.status && pod.status.conditions) {
+          const readyCondition = pod.status.conditions.find(c => c.type === 'Ready');
           if (readyCondition && readyCondition.status === 'True') {
             console.log(`✅ Pod ${podName} is ready!`);
             return true;
@@ -356,7 +352,8 @@ class K8sService {
         }
 
         // Log current status
-        console.log(`⏳ Pod ${podName} status: ${podStatus.phase}, waiting for Ready...`);
+        const phase = pod.status ? pod.status.phase : 'Unknown';
+        console.log(`⏳ Pod ${podName} status: ${phase}, waiting for Ready...`);
         
         // Wait 3 seconds before checking again
         await new Promise(resolve => setTimeout(resolve, 3000));
