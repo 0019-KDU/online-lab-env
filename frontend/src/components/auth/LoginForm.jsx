@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { EnvelopeIcon, LockClosedIcon } from '@heroicons/react/24/outline';
 import useAuthStore from '../../store/authStore';
 import ErrorMessage from '../common/ErrorMessage';
@@ -152,17 +152,8 @@ const LoginForm = () => {
                 <div className="w-full border-t border-gray-300" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">New to the platform?</span>
+                <span className="px-2 bg-white text-gray-500">Contact your administrator for access</span>
               </div>
-            </div>
-
-            <div className="mt-6 text-center">
-              <Link
-                to="/register"
-                className="font-medium text-primary-600 hover:text-primary-500"
-              >
-                Create an account
-              </Link>
             </div>
           </div>
         </div>

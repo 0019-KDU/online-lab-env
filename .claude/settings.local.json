@@ -14,7 +14,9 @@
       "Bash(kubectl get:*)",
       "Bash(curl:*)",
       "Bash(kubectl rollout restart:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(iconv:*)",
+      "Bash(/dev/null)"
     ],
     "deny": [],
     "ask": []
