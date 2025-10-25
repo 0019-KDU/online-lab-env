@@ -142,10 +142,7 @@ class K8sService {
     try {
       // Create the pod
       console.log('About to call createNamespacedPod with namespace:', namespace);
-      const createPodResponse = await k8sApi.createNamespacedPod({
-        namespace: namespace,
-        body: podManifest
-      });
+        const createPodResponse = await k8sApi.createNamespacedPod(namespace, podManifest);
       console.log('Pod created successfully:', createPodResponse.body?.metadata?.name);
 
       // Create ClusterIP service (internal only)
@@ -174,10 +171,7 @@ class K8sService {
       };
 
       try {
-        await k8sApi.createNamespacedService({
-          namespace: namespace,
-          body: serviceManifest
-        });
+          await k8sApi.createNamespacedService(namespace, serviceManifest);
         console.log('✅ ClusterIP Service created:', `svc-${podName}`);
       } catch (svcError) {
         console.error('Failed to create service:', svcError.body || svcError.message);
@@ -265,10 +259,7 @@ class K8sService {
         }
       };
 
-      await k8sNetworkingApi.createNamespacedIngress({
-        namespace: namespace,
-        body: ingressManifest
-      });
+        await k8sNetworkingApi.createNamespacedIngress(namespace, ingressManifest);
       console.log('✅ Ingress created:', ingressName);
       
       return ingressName;
