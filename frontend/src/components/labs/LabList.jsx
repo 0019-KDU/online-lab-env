@@ -19,9 +19,13 @@ const LabList = () => {
     setStartingLabId(templateId);
     try {
       await startLab(templateId);
-      alert('Lab started successfully! Check your active sessions.');
+      // Success message - lab is now ready
+      alert('✅ Lab is ready! Opening in new tab...');
+      // Optionally redirect to sessions page
+      // window.location.href = '/sessions';
     } catch (error) {
       console.error('Failed to start lab:', error);
+      alert('❌ Failed to start lab. Please try again or contact support.');
     } finally {
       setStartingLabId(null);
     }
