@@ -19,7 +19,7 @@ spec:
         - name: cyberlab-registry 
       containers:
       - name: backend
-        image: registry.digitalocean.com/cyberlab-registry/cyberlab-backend:main-2ea138b
+        image: registry.digitalocean.com/cyberlab-registry/cyberlab-backend:main-4b02f63
         imagePullPolicy: Always
         ports:
         - containerPort: 5000
