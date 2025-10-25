@@ -229,7 +229,6 @@ class K8sService {
           name: ingressName,
           namespace: namespace,
           annotations: {
-            'kubernetes.io/ingress.class': 'nginx',
             // Removed cert-manager due to Let's Encrypt rate limits on nip.io domain
             'nginx.ingress.kubernetes.io/rewrite-target': '/$2',
             'nginx.ingress.kubernetes.io/ssl-redirect': 'false', // Disable SSL redirect - using HTTP
@@ -241,15 +240,12 @@ class K8sService {
             // Additional fixes for connection stability
             'nginx.ingress.kubernetes.io/proxy-buffering': 'off',
             'nginx.ingress.kubernetes.io/proxy-request-buffering': 'off',
-            'nginx.ingress.kubernetes.io/proxy-http-version': '1.1',
-            'nginx.ingress.kubernetes.io/configuration-snippet': `
-              proxy_set_header Upgrade $http_upgrade;
-              proxy_set_header Connection "upgrade";
-              proxy_cache_bypass $http_upgrade;
-            `
+            'nginx.ingress.kubernetes.io/proxy-http-version': '1.1'
+            // Note: configuration-snippet removed - snippets are disabled by ingress administrator
           }
         },
         spec: {
+          ingressClassName: 'nginx', // Use spec.ingressClassName instead of deprecated annotation
           // TLS removed due to Let's Encrypt rate limits on nip.io
           rules: [{
             host: domain,
